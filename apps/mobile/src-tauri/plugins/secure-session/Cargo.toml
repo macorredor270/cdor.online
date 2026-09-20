@@ -1,0 +1,16 @@
+[package]
+name = "tauri-plugin-secure-session"
+version = "0.1.0"
+authors = ["CDOR"]
+description = "Android Keystore and iOS Keychain session storage for CDOR"
+edition = "2024"
+rust-version = "1.85"
+links = "tauri-plugin-secure-session"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "=2.11.5" }
+thiserror = "2.0"
+
+[build-dependencies]
+tauri-plugin = { version = "=2.6.3", features = ["build"] }

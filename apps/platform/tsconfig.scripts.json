@@ -1,0 +1,17 @@
+{
+  "extends": "./.svelte-kit/tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [
+    ".svelte-kit/ambient.d.ts",
+    "drizzle.config.ts",
+    "scripts/**/*.ts",
+    "src/lib/server/db/**/*.ts",
+    "tests/db/**/*.ts"
+  ]
+}

@@ -1,0 +1,50 @@
+name: Streaming
+
+on:
+  pull_request:
+    paths:
+      - "apps/platform/src/lib/server/stream/**"
+      - "apps/platform/src/lib/server/services/chat-*"
+      - "apps/platform/src/lib/server/db/repositories/generations.ts"
+      - "apps/platform/src/routes/api/v1/chat/**"
+      - "apps/platform/src/routes/api/v1/internal/stream-canary/**"
+      - "apps/platform/tests/sse/**"
+      - "apps/platform/scripts/stream/**"
+      - "scripts/hostinger/**"
+      - ".github/workflows/streaming.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/platform/src/lib/server/stream/**"
+      - "apps/platform/src/lib/server/services/chat-*"
+      - "apps/platform/src/lib/server/db/repositories/generations.ts"
+      - "apps/platform/src/routes/api/v1/chat/**"
+      - "apps/platform/src/routes/api/v1/internal/stream-canary/**"
+      - "apps/platform/tests/sse/**"
+      - "apps/platform/scripts/stream/**"
+      - "scripts/hostinger/**"
+      - ".github/workflows/streaming.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  streaming:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @cdor/platform...
+      - run: pnpm test:sse
+      - run: pnpm --dir apps/platform check
+      - run: pnpm scan:client-secrets
+      - if: always()
+        run: docker compose --project-name cdor-local --file infra/local/compose.mysql.yml stop

@@ -1,0 +1,71 @@
+name: Mobile core
+
+on:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - "packages/contracts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "rust-toolchain.toml"
+      - "scripts/env.sh"
+      - ".github/workflows/mobile-core.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "packages/contracts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "rust-toolchain.toml"
+      - "scripts/env.sh"
+      - ".github/workflows/mobile-core.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir apps/mobile check
+      - run: pnpm --dir apps/mobile test:bridge
+      - run: pnpm --dir apps/mobile build
+      - run: >-
+          cargo fmt
+          --manifest-path apps/mobile/src-tauri/Cargo.toml
+          -- --check
+      - run: >-
+          cargo clippy
+          --manifest-path apps/mobile/src-tauri/Cargo.toml
+          --all-targets
+          --all-features
+          -- -D warnings
+      - run: >-
+          cargo test
+          --manifest-path apps/mobile/src-tauri/Cargo.toml

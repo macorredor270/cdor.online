@@ -1,0 +1,43 @@
+name: Platform build
+
+on:
+  pull_request:
+    paths:
+      - "apps/platform/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".node-version"
+      - ".github/workflows/platform-build.yml"
+  push:
+    branches: [main, production]
+    paths:
+      - "apps/platform/**"
+      - "packages/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".node-version"
+      - ".github/workflows/platform-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: Install platform dependency graph only
+        run: pnpm install --frozen-lockfile --filter @cdor/platform...
+      - name: Build platform only
+        run: pnpm build:platform

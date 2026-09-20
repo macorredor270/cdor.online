@@ -1,0 +1,56 @@
+name: Production gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_load:
+        description: "Ejecutar carga HTTP contra CDOR_ORIGIN"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @cdor/platform...
+      - run: pnpm --dir apps/platform check
+      - run: pnpm --dir apps/platform test:security
+      - run: pnpm test:validation
+      - run: pnpm scan:client-secrets
+      - run: pnpm security:audit
+      - run: pnpm build:platform
+      - run: ./scripts/hostinger/create-platform-archive.sh "$RUNNER_TEMP/cdor-platform-hostinger.tar.gz"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cdor-platform-hostinger-${{ github.sha }}
+          path: ${{ runner.temp }}/cdor-platform-hostinger.tar.gz
+          if-no-files-found: error
+
+  load:
+    if: inputs.run_load
+    needs: release-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - run: node scripts/load/http-smoke.mjs
+        env:
+          CDOR_ORIGIN: ${{ vars.CDOR_ORIGIN || 'https://cdor.online' }}
+          CDOR_CONCURRENCY: "10"
+          CDOR_REQUESTS: "100"

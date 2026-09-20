@@ -1,0 +1,46 @@
+name: Sync
+
+on:
+  pull_request:
+    paths:
+      - "apps/platform/src/lib/server/db/repositories/sync.ts"
+      - "apps/platform/src/lib/server/services/sync.ts"
+      - "apps/platform/src/routes/api/v1/sync/**"
+      - "apps/platform/tests/sync/**"
+      - "apps/platform/drizzle/**"
+      - "packages/contracts/src/sync.ts"
+      - "scripts/db/**"
+      - ".github/workflows/sync.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/platform/src/lib/server/db/repositories/sync.ts"
+      - "apps/platform/src/lib/server/services/sync.ts"
+      - "apps/platform/src/routes/api/v1/sync/**"
+      - "apps/platform/tests/sync/**"
+      - "apps/platform/drizzle/**"
+      - "packages/contracts/src/sync.ts"
+      - "scripts/db/**"
+      - ".github/workflows/sync.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        engine: [mysql, mariadb]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: ./scripts/db/run-test-command.sh test:sync ${{ matrix.engine }}

@@ -1,0 +1,68 @@
+name: Publish Hostinger source
+
+on:
+  workflow_run:
+    workflows: ["Checks"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hostinger-source
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Create filtered Hostinger source
+        run: >-
+          ./scripts/hostinger/create-platform-archive.sh
+          "$RUNNER_TEMP/cdor-platform-hostinger.tar.gz"
+
+      - name: Validate filtered source
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/cdor-platform-hostinger.tar.gz"
+          tar -tzf "$archive" | grep -Fx "apps/platform/package.json"
+          tar -tzf "$archive" | grep -Fx "packages/contracts/package.json"
+          if tar -tzf "$archive" |
+            grep -Eq '(^|/)(apps/mobile|src-tauri)(/|$)'; then
+            echo "El artefacto contiene código móvil no permitido" >&2
+            exit 1
+          fi
+
+      - name: Publish generated branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/cdor-platform-hostinger.tar.gz"
+          stage="$RUNNER_TEMP/hostinger-source"
+          mkdir -p "$stage"
+          tar -xzf "$archive" -C "$stage"
+          cd "$stage"
+          git init
+          git checkout -b hostinger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "deploy: ${SOURCE_SHA}"
+          git remote add origin \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin hostinger

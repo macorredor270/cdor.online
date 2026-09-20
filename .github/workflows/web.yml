@@ -1,0 +1,51 @@
+name: Web
+
+on:
+  pull_request:
+    paths:
+      - "apps/platform/src/lib/client/**"
+      - "apps/platform/src/lib/components/**"
+      - "apps/platform/src/routes/**"
+      - "apps/platform/src/app.css"
+      - "apps/platform/tests/web/**"
+      - "packages/contracts/**"
+      - "scripts/web/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/web.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/platform/src/lib/client/**"
+      - "apps/platform/src/lib/components/**"
+      - "apps/platform/src/routes/**"
+      - "apps/platform/src/app.css"
+      - "apps/platform/tests/web/**"
+      - "packages/contracts/**"
+      - "scripts/web/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/web.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @cdor/platform...
+      - run: pnpm --dir apps/platform check
+      - run: pnpm test:web
+      - run: pnpm test:e2e:web
+      - run: pnpm scan:client-secrets

@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-resolve-host"
+description = "Enables the resolve_host command without any pre-configured scope."
+commands.allow = ["resolve_host"]
+
+[[permission]]
+identifier = "deny-resolve-host"
+description = "Denies the resolve_host command without any pre-configured scope."
+commands.deny = ["resolve_host"]

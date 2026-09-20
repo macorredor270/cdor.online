@@ -1,0 +1,51 @@
+name: Database
+
+on:
+  pull_request:
+    paths:
+      - "apps/platform/drizzle/**"
+      - "apps/platform/scripts/db/**"
+      - "apps/platform/src/lib/server/db/**"
+      - "apps/platform/tests/db/**"
+      - "infra/local/compose.mysql.yml"
+      - "scripts/db/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/database.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/platform/drizzle/**"
+      - "apps/platform/scripts/db/**"
+      - "apps/platform/src/lib/server/db/**"
+      - "apps/platform/tests/db/**"
+      - "infra/local/compose.mysql.yml"
+      - "scripts/db/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/database.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  mysql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @cdor/platform...
+      - run: pnpm db:check
+      - run: pnpm db:compat:test
+      - run: pnpm db:restore:test
+      - run: pnpm db:explain

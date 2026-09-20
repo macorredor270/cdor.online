@@ -1,0 +1,56 @@
+services:
+  mysql:
+    image: mysql:8.4.8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: cdor_local_root_only
+      MYSQL_DATABASE: cdor_dev
+      MYSQL_USER: cdor
+      MYSQL_PASSWORD: cdor_dev_password_only
+    ports:
+      - "127.0.0.1:${CDOR_MYSQL_PORT:-3307}:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "MYSQL_PWD=$${MYSQL_ROOT_PASSWORD} mysqladmin ping -h 127.0.0.1 -uroot --silent"
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+    volumes:
+      - cdor_mysql_data:/var/lib/mysql
+
+  mariadb:
+    image: mariadb:11.8.8
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: cdor_local_root_only
+      MARIADB_DATABASE: cdor_dev
+      MARIADB_USER: cdor
+      MARIADB_PASSWORD: cdor_dev_password_only
+    ports:
+      - "127.0.0.1:${CDOR_MARIADB_PORT:-3308}:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "MARIADB_PWD=$${MARIADB_ROOT_PASSWORD} mariadb-admin ping -h 127.0.0.1 -uroot --silent"
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+    volumes:
+      - cdor_mariadb_data:/var/lib/mysql
+
+volumes:
+  cdor_mysql_data:
+  cdor_mariadb_data:

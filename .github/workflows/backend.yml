@@ -1,0 +1,56 @@
+name: Backend
+
+on:
+  pull_request:
+    paths:
+      - "apps/platform/src/hooks.server.ts"
+      - "apps/platform/src/lib/server/**"
+      - "apps/platform/src/routes/api/**"
+      - "apps/platform/src/routes/health/**"
+      - "apps/platform/tests/backend/**"
+      - "scripts/backend/**"
+      - "scripts/db/**"
+      - "infra/local/compose.mysql.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/backend.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/platform/src/hooks.server.ts"
+      - "apps/platform/src/lib/server/**"
+      - "apps/platform/src/routes/api/**"
+      - "apps/platform/src/routes/health/**"
+      - "apps/platform/tests/backend/**"
+      - "scripts/backend/**"
+      - "scripts/db/**"
+      - "infra/local/compose.mysql.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/backend.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @cdor/platform...
+      - run: pnpm --dir apps/platform check
+      - run: pnpm --dir apps/platform test
+      - run: pnpm test:backend
+      - run: ./scripts/db/run-test-command.sh test:backend mariadb
+      - run: pnpm smoke:health
+      - if: always()
+        run: docker compose --project-name cdor-local --file infra/local/compose.mysql.yml stop
