@@ -26,7 +26,9 @@
     {:else if block.type === "rule"}
       <hr />
     {:else if block.type === "table"}
-      <!-- La tabla se desplaza dentro de su marco: nunca ensancha la página. -->
+      <!-- La tabla se desplaza dentro de su marco: nunca ensancha la página.
+           Es enfocable para poder desplazarla con el teclado (WCAG 2.1.1). -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
       <div class="table-wrap" role="region" aria-label="Tabla" tabindex="0">
         <table>
           <thead>
