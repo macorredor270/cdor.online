@@ -58,10 +58,11 @@ export const SECRET_CANARIES = Object.freeze({
   OPENROUTER_BASE_URL: "https://openrouter-canary-7f42.invalid/api/v1",
   OPENROUTER_DEFAULT_MODEL: "cdor/openrouter-canary-free-7f42",
   OPENROUTER_REQUEST_TIMEOUT_MS: "234568",
+  // AI_FALLBACK_OPENROUTER es booleana: su nombre se vigila, pero un valor
+  // canario ("false") aparece en cualquier bundle y daría falsos positivos.
   QUOTA_USER_DAILY_MESSAGES: "7431",
   QUOTA_USER_DAILY_TOKENS: "743100",
   QUOTA_GLOBAL_DAILY_TOKENS: "7431000",
-  AI_FALLBACK_OPENROUTER: "false",
   STREAM_CANARY_TOKEN: "__CDOR_PRIVATE_CANARY_STREAM_TOKEN_7f42c9__"
 });
 

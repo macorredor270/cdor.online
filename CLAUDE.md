@@ -172,6 +172,10 @@ CDOR (`server/stream/`), nunca se reenvía el stream crudo del proveedor.
   catálogo completo del proveedor.
 - `generation_requests.cancel_requested_at` hace que la cancelación sobreviva a
   reinicios de proceso.
+- Cuotas diarias por usuario y tope global (`services/quota.ts`, tabla
+  `rate_limit_buckets`) y respaldo entre proveedores (`ai/fallback.ts`, opt-in
+  con `AI_FALLBACK_OPENROUTER`): ver `docs/ai.md`. Toda variable nueva de esto
+  es server-only y debe constar en `SERVER_SECRET_ENV_NAMES` y en el escáner.
 
 Detalles en `docs/ai.md`.
 

@@ -19,6 +19,23 @@
     { key: "outputTokens", label: "Tokens de salida", note: "Respuestas del modelo" }
   ] as const;
 
+  const resetFormat = new Intl.DateTimeFormat("es", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
+  type Meter = { used: number; limit: number | null };
+
+  /** Fracción usada (0–1); sin límite no hay barra que llenar. */
+  function fill(meter: Meter): number {
+    return meter.limit === null ? 0 : Math.min(meter.used / meter.limit, 1);
+  }
+
+  function tone(meter: Meter): "ok" | "warn" | "full" {
+    const ratio = fill(meter);
+    return ratio >= 1 ? "full" : ratio >= 0.8 ? "warn" : "ok";
+  }
+
   /** Proporción de salida sobre el total, para la barra de reparto. */
   function outputShare(input: number, output: number): number {
     const total = input + output;
@@ -50,6 +67,48 @@
       {/each}
     </section>
   {:then summary}
+    <section class="today panel" aria-labelledby="today-heading">
+      <div class="today-head">
+        <h2 id="today-heading">Hoy</h2>
+        <p class="muted">
+          Se restablece a las {resetFormat.format(new Date(summary.quota.resetsAt))}
+          (hora de tu dispositivo)
+        </p>
+      </div>
+      {#each [{ label: "Mensajes", meter: summary.quota.messages }, { label: "Tokens", meter: summary.quota.tokens }] as row (row.label)}
+        <div class="meter" data-tone={tone(row.meter)}>
+          <div class="meter-head">
+            <span>{row.label}</span>
+            <span class="figures">
+              {number.format(row.meter.used)}
+              {#if row.meter.limit !== null}
+                <span class="muted">de {number.format(row.meter.limit)}</span>
+              {:else}
+                <span class="muted">· sin límite</span>
+              {/if}
+            </span>
+          </div>
+          {#if row.meter.limit !== null}
+            <div
+              class="track"
+              role="meter"
+              aria-label={row.label}
+              aria-valuemin="0"
+              aria-valuemax={row.meter.limit}
+              aria-valuenow={Math.min(row.meter.used, row.meter.limit)}
+            >
+              <i style:width={`${Math.round(fill(row.meter) * 100)}%`}></i>
+            </div>
+          {/if}
+        </div>
+      {/each}
+      {#if tone(summary.quota.messages) === "full" || tone(summary.quota.tokens) === "full"}
+        <p class="limit-note" role="status">
+          Has alcanzado tu límite de hoy. Podrás seguir escribiendo en cuanto se restablezca.
+        </p>
+      {/if}
+    </section>
+
     <section class="metrics" aria-label="Resumen de uso">
       {#each CARDS as card, index (card.key)}
         <article class="panel" class:primary={index === 0}>
@@ -109,6 +168,83 @@
 </AppPage>
 
 <style>
+  .today {
+    display: grid;
+    gap: var(--space-4);
+    margin-bottom: var(--space-3);
+    padding: var(--space-6);
+  }
+
+  .today-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .today-head h2,
+  .today-head p {
+    margin: 0;
+  }
+
+  .today-head h2 {
+    font-size: var(--text-lg);
+  }
+
+  .today-head p {
+    font-size: var(--text-sm);
+  }
+
+  .meter {
+    --meter-color: var(--accent);
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .meter[data-tone="warn"] {
+    --meter-color: var(--warning);
+  }
+
+  .meter[data-tone="full"] {
+    --meter-color: var(--danger);
+  }
+
+  .meter-head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  .figures {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .track {
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--meter-color) 18%, var(--surface-3));
+  }
+
+  .track i {
+    display: block;
+    min-width: 0.25rem;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--meter-color);
+    transition:
+      width var(--motion-slow) var(--easing-out),
+      background var(--motion-base) var(--easing);
+  }
+
+  .limit-note {
+    margin: 0;
+    color: var(--danger);
+    font-size: var(--text-sm);
+  }
+
   .metrics {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));

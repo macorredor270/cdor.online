@@ -252,6 +252,26 @@ conocido en microdólares. El cálculo se realiza directamente sobre
 no informa coste, el servidor conserva `knownCostMicrousd` en cero; la interfaz
 no estima ni inventa un importe.
 
+La respuesta incluye además `quota`, el estado de las cuotas diarias del
+usuario (ver [Cuotas](./ai.md#cuotas-de-uso)):
+
+```json
+{
+  "quota": {
+    "resetsAt": "2026-07-30T00:00:00.000Z",
+    "messages": { "used": 12, "limit": 100 },
+    "tokens": { "used": 18450, "limit": 150000 }
+  }
+}
+```
+
+`limit` es `null` cuando ese límite está desactivado. `resetsAt` es siempre
+una medianoche UTC.
+
+Si la cuota está agotada, `POST /api/v1/chat/stream` y `/chat/regenerate`
+responden `429 RATE_LIMITED` **antes** de guardar nada, con un mensaje en
+español y `details: { "quota": "messages" | "tokens" | "global" }`.
+
 ## Fuente TypeScript
 
 Los esquemas Zod y sus tipos inferidos se exportan desde `@cdor/contracts`.

@@ -9,7 +9,11 @@
     Conversation,
     MessageListData
   } from "@cdor/contracts";
-  import { apiRequest, readChatStream } from "#lib/client/api.js";
+  import {
+    ApiClientError,
+    apiRequest,
+    readChatStream
+  } from "#lib/client/api.js";
   import Composer from "#lib/components/Composer.svelte";
   import Markdown from "#lib/components/Markdown.svelte";
   import Icon from "#lib/components/Icon.svelte";
@@ -286,19 +290,33 @@
     void maybeRename(content);
     await scrollToBottom(true);
 
-    await runGeneration("/api/v1/chat/stream", {
-      conversationId: conversation.id,
-      message: {
-        id: messageId,
-        clientOperationId: operationId,
-        content
+    await runGeneration(
+      "/api/v1/chat/stream",
+      {
+        conversationId: conversation.id,
+        message: {
+          id: messageId,
+          clientOperationId: operationId,
+          content
+        },
+        modelMode: "balanced",
+        webSearch
       },
-      modelMode: "balanced",
-      webSearch
-    });
+      // El servidor rechazó el mensaje antes de guardarlo (cuota agotada,
+      // conversación borrada…): no existe, así que se retira de la lista y el
+      // texto vuelve al cuadro para no perder lo escrito.
+      () => {
+        messages = messages.filter((message) => message.id !== messageId);
+        if (!prompt) prompt = content;
+      }
+    );
   }
 
-  async function runGeneration(path: string, body: unknown) {
+  async function runGeneration(
+    path: string,
+    body: unknown,
+    onRejected?: () => void
+  ) {
     try {
       const response = await fetch(path, {
         method: "POST",
@@ -319,6 +337,8 @@
       streamingText = "";
       generationId = null;
       assistantId = null;
+      // Un 409 es una repetición idempotente: el mensaje sí existe.
+      if (cause instanceof ApiClientError && cause.status !== 409) onRejected?.();
       chatError =
         cause instanceof Error
           ? cause.message
