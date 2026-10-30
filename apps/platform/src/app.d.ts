@@ -1,4 +1,4 @@
-import type { Principal } from "$lib/server/auth/principal";
+import type { Principal } from "#lib/server/auth/principal.js";
 
 declare global {
   namespace App {

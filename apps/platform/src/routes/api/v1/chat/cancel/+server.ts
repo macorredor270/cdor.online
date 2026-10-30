@@ -1,11 +1,8 @@
 import { ChatCancelRequestSchema } from "@cdor/contracts";
-import { requirePrincipal } from "$lib/server/http/principal";
-import { parseJsonRequest } from "$lib/server/http/payload";
-import {
-  apiHandler,
-  apiSuccess
-} from "$lib/server/http/response";
-import { getChatStreamService } from "$lib/server/services/chat-runtime";
+import { requirePrincipal } from "#lib/server/http/principal.js";
+import { parseJsonRequest } from "#lib/server/http/payload.js";
+import { apiHandler, apiSuccess } from "#lib/server/http/response.js";
+import { getChatStreamService } from "#lib/server/services/chat-runtime.js";
 import type { RequestHandler } from "./$types";
 
 export const POST: RequestHandler = ({ locals, request }) =>

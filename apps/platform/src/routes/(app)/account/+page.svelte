@@ -1,11 +1,11 @@
 <script lang="ts">
   import { ulid } from "ulid";
   import type { Device } from "@cdor/contracts";
-  import { apiRequest } from "$lib/client/api";
-  import { toasts } from "$lib/client/toast.svelte";
-  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
-  import Skeleton from "$lib/components/Skeleton.svelte";
-  import UserAvatar from "$lib/components/UserAvatar.svelte";
+  import { apiRequest } from "#lib/client/api.js";
+  import { toasts } from "#lib/client/toast.svelte.js";
+  import ConfirmDialog from "#lib/components/ConfirmDialog.svelte";
+  import Skeleton from "#lib/components/Skeleton.svelte";
+  import UserAvatar from "#lib/components/UserAvatar.svelte";
 
   let { data } = $props();
   /** `null` mientras la lista viaja; el vacío real es un array vacío. */

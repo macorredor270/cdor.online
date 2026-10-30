@@ -1,4 +1,3 @@
-import { env } from "$env/dynamic/private";
 import {
   parseAuthEnvironment,
   parseAiEnvironment,
@@ -13,6 +12,10 @@ import {
   type StreamCanaryEnvironment,
   type ServerEnvironment
 } from "./schema";
+
+// adapter-node exposes the hosting variables on process.env and
+// scripts/dev-local.sh exports the root .env in development.
+const env = process.env;
 
 let cachedEnvironment: ServerEnvironment | undefined;
 let cachedDatabaseEnvironment: DatabaseEnvironment | undefined;

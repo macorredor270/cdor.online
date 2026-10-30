@@ -1,4 +1,5 @@
-import { getAuth } from "$lib/server/auth/runtime";
+import { getAuth } from "#lib/server/auth/runtime.js";
+import { getAuthEnvironment } from "#lib/server/config/index.js";
 import type { RequestHandler } from "./$types";
 
 const PROVIDERS = new Set(["github", "google"]);
@@ -16,14 +17,20 @@ function appRedirect(state: string, error: string): Response {
 }
 
 export const GET: RequestHandler = async ({ request, url }) => {
+  // The public origin comes from configuration, not from the request: behind
+  // the hosting proxy the request may arrive as plain http.
+  const origin = new URL(getAuthEnvironment().ORIGIN).origin;
   const provider = url.searchParams.get("provider") ?? "";
   const state = url.searchParams.get("state") ?? "";
   const challenge = url.searchParams.get("challenge") ?? "";
-  if (!STATE_PATTERN.test(state)) return new Response("Estado OAuth no válido", { status: 400 });
-  if (!CHALLENGE_PATTERN.test(challenge)) return appRedirect(state, "challenge_invalid");
-  if (!PROVIDERS.has(provider)) return appRedirect(state, "provider_not_supported");
+  if (!STATE_PATTERN.test(state))
+    return new Response("Estado OAuth no válido", { status: 400 });
+  if (!CHALLENGE_PATTERN.test(challenge))
+    return appRedirect(state, "challenge_invalid");
+  if (!PROVIDERS.has(provider))
+    return appRedirect(state, "provider_not_supported");
 
-  const callback = new URL("/mobile-auth/complete", url.origin);
+  const callback = new URL("/mobile-auth/complete", origin);
   callback.searchParams.set("state", state);
   callback.searchParams.set("challenge", challenge);
   const errorCallback = new URL(callback);
@@ -31,9 +38,9 @@ export const GET: RequestHandler = async ({ request, url }) => {
 
   const headers = new Headers(request.headers);
   headers.set("content-type", "application/json");
-  headers.set("origin", url.origin);
+  headers.set("origin", origin);
   const response = await getAuth().handler(
-    new Request(new URL("/api/auth/sign-in/social", url.origin), {
+    new Request(new URL("/api/auth/sign-in/social", origin), {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -47,8 +54,11 @@ export const GET: RequestHandler = async ({ request, url }) => {
   );
   if (!response.ok) return appRedirect(state, "oauth_start_failed");
 
-  const payload = (await response.json().catch(() => null)) as { url?: unknown } | null;
-  if (typeof payload?.url !== "string") return appRedirect(state, "oauth_start_failed");
+  const payload = (await response.json().catch(() => null)) as {
+    url?: unknown;
+  } | null;
+  if (typeof payload?.url !== "string")
+    return appRedirect(state, "oauth_start_failed");
 
   const redirectHeaders = new Headers({
     location: payload.url,

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import AuthCard from "$lib/components/AuthCard.svelte";
-  import OAuthButtons from "$lib/components/OAuthButtons.svelte";
-  import PublicShell from "$lib/components/PublicShell.svelte";
+  import AuthCard from "#lib/components/AuthCard.svelte";
+  import OAuthButtons from "#lib/components/OAuthButtons.svelte";
+  import PublicShell from "#lib/components/PublicShell.svelte";
 
   let { data } = $props();
   let email = $state("");

@@ -1,11 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
-import { getStreamCanaryEnvironment } from "$lib/server/config";
-import {
-  createCanaryStream
-} from "$lib/server/stream/canary";
-import { sseResponse } from "$lib/server/stream/sse";
-import { apiError } from "$lib/server/http/response";
-import { AppError } from "$lib/server/errors/app-error";
+import { getStreamCanaryEnvironment } from "#lib/server/config/index.js";
+import { createCanaryStream } from "#lib/server/stream/canary.js";
+import { sseResponse } from "#lib/server/stream/sse.js";
+import { apiError } from "#lib/server/http/response.js";
+import { AppError } from "#lib/server/errors/app-error.js";
 import type { RequestHandler } from "./$types";
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -17,9 +15,7 @@ function validBearer(header: string | null, expected: string): boolean {
   }
   const supplied = Buffer.from(header.slice(7));
   const target = Buffer.from(expected);
-  return (
-    supplied.length === target.length && timingSafeEqual(supplied, target)
-  );
+  return supplied.length === target.length && timingSafeEqual(supplied, target);
 }
 
 export const GET: RequestHandler = ({ locals, request }) => {
@@ -31,10 +27,7 @@ export const GET: RequestHandler = ({ locals, request }) => {
         environment.STREAM_CANARY_TOKEN
       )
     ) {
-      throw new AppError(
-        "UNAUTHENTICATED",
-        "La canary requiere autorización"
-      );
+      throw new AppError("UNAUTHENTICATED", "La canary requiere autorización");
     }
 
     return sseResponse(

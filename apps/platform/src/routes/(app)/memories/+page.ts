@@ -1,5 +1,5 @@
 import type { MemoryListData } from "@cdor/contracts";
-import { apiRequest } from "$lib/client/api";
+import { apiRequest } from "#lib/client/api.js";
 import type { PageLoad } from "./$types";
 
 /**

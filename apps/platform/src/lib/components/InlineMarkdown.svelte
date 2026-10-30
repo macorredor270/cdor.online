@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { InlineToken } from "$lib/client/markdown";
+  import type { InlineToken } from "#lib/client/markdown.js";
 
   let { tokens }: { tokens: InlineToken[] } = $props();
 </script>

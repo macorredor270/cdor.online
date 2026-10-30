@@ -1,6 +1,6 @@
 <script lang="ts">
   import CodeBlock from "./CodeBlock.svelte";
-  import { parseMarkdown } from "$lib/client/markdown";
+  import { parseMarkdown } from "#lib/client/markdown.js";
   import InlineMarkdown from "./InlineMarkdown.svelte";
 
   let { source }: { source: string } = $props();

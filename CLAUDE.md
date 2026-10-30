@@ -105,10 +105,16 @@ pnpm build:hostinger
 ## Arquitectura
 
 ```text
-apps/platform  → SvelteKit + adapter-node → Hostinger Business (cdor.online)
+apps/platform  → SvelteKit 3 + adapter-node 6 → Hostinger Business (cdor.online)
 apps/mobile    → Svelte + Tauri/Rust      → Android/iOS
 packages/contracts → Zod, fuente de verdad de tipos compartidos
 ```
+
+SvelteKit 3: no hay `svelte.config.js`; la configuración de Kit vive en
+`sveltekit({...})` dentro de `apps/platform/vite.config.ts`. El alias `$lib`
+ya no existe: se importa con `#lib/...` (subpath imports de `package.json`) y
+extensión explícita (`#lib/server/foo.js` para un `.ts`). Estado de página con
+`$app/state`, nunca `$app/stores`.
 
 ### Frontera de red
 

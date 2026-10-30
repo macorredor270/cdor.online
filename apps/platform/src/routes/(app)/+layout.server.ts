@@ -1,5 +1,5 @@
 import { redirect } from "@sveltejs/kit";
-import { isWebSearchEnabled } from "$lib/server/config";
+import { isWebSearchEnabled } from "#lib/server/config/index.js";
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = ({ locals }) => {

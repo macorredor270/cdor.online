@@ -139,6 +139,25 @@ describe("frontera HTTP del backend", () => {
     expect(resolved).toBe(false);
   });
 
+  // Con paths.origin, adapter-node fija event.url al apex aunque el navegador
+  // haya pedido www; el host real solo queda en la cabecera Host.
+  it("canonicaliza www leyendo la cabecera Host cuando la URL ya es el apex", async () => {
+    const url = new URL("https://cdor.online/chat");
+    const event = {
+      locals: {} as App.Locals,
+      request: new Request(url, { headers: { host: "www.cdor.online" } }),
+      url
+    };
+
+    const response = await handle({
+      event,
+      resolve: async () => new Response("no debería resolverse")
+    } as never);
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://cdor.online/chat");
+  });
+
   it("no redirige cuando la petición ya llega al apex", async () => {
     const url = new URL("https://cdor.online/health");
     const event = {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import Logo from "$lib/components/Logo.svelte";
+  import Logo from "#lib/components/Logo.svelte";
 
   /**
    * Página de error del producto.

@@ -1,9 +1,6 @@
-import type {
-  Conversation,
-  MessageListData
-} from "@cdor/contracts";
+import type { Conversation, MessageListData } from "@cdor/contracts";
 import { error } from "@sveltejs/kit";
-import { ApiClientError, apiRequest } from "$lib/client/api";
+import { ApiClientError, apiRequest } from "#lib/client/api.js";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ fetch, params }) => {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import AuthCard from "$lib/components/AuthCard.svelte";
-  import PublicShell from "$lib/components/PublicShell.svelte";
+  import AuthCard from "#lib/components/AuthCard.svelte";
+  import PublicShell from "#lib/components/PublicShell.svelte";
 
   let newPassword = $state("");
   let confirmPassword = $state("");

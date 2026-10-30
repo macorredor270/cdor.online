@@ -1,17 +1,17 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { goto, invalidateAll } from "$app/navigation";
+  import { goto, refreshAll } from "$app/navigation";
   import type { Conversation, ConversationListData } from "@cdor/contracts";
-  import { apiRequest } from "$lib/client/api";
+  import { apiRequest } from "#lib/client/api.js";
   import {
     filterConversations,
     groupConversations
-  } from "$lib/client/conversation-groups";
-  import { toasts } from "$lib/client/toast.svelte";
-  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
-  import Logo from "$lib/components/Logo.svelte";
-  import Skeleton from "$lib/components/Skeleton.svelte";
-  import UserAvatar from "$lib/components/UserAvatar.svelte";
+  } from "#lib/client/conversation-groups.js";
+  import { toasts } from "#lib/client/toast.svelte.js";
+  import ConfirmDialog from "#lib/components/ConfirmDialog.svelte";
+  import Logo from "#lib/components/Logo.svelte";
+  import Skeleton from "#lib/components/Skeleton.svelte";
+  import UserAvatar from "#lib/components/UserAvatar.svelte";
 
   let { data, children } = $props();
   let conversations = $state<Conversation[]>([]);
@@ -237,7 +237,7 @@
       headers: { "content-type": "application/json" },
       body: "{}"
     }).catch(() => null);
-    await invalidateAll();
+    await refreshAll();
     location.assign("/");
   }
 

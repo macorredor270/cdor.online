@@ -29,6 +29,14 @@
   raíz del repositorio o desde `output_directory`; ambas rutas arrancan el
   mismo artefacto sin depender de enlaces simbólicos.
 - Puerto: el proceso de `@sveltejs/adapter-node` debe respetar `PORT`.
+- Origen público: desde SvelteKit 3 / adapter-node 6 la variable `ORIGIN` ya
+  no se lee en tiempo de ejecución. `vite.config.ts` la copia en
+  `paths.origin` **durante el build**, así que `ORIGIN=https://cdor.online`
+  debe estar disponible también en la compilación de Hostinger. Si falta, el
+  origen se deriva de cada petición. La aplicación sigue leyendo `ORIGIN` en
+  ejecución para Better Auth y el flujo OAuth móvil, y la redirección
+  `www` → apex se decide por la cabecera `Host`, de modo que ninguna de las
+  dos cosas depende de cómo construya el adapter `event.url`.
 
 ## Comandos
 

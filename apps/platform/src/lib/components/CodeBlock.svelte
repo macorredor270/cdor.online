@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { highlight, resolveLanguage, type HighlightLine } from "$lib/client/highlight";
-  import { toasts } from "$lib/client/toast.svelte";
+  import { highlight, resolveLanguage, type HighlightLine } from "#lib/client/highlight.js";
+  import { toasts } from "#lib/client/toast.svelte.js";
 
   let { language = "", value }: { language?: string; value: string } = $props();
 

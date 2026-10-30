@@ -1,6 +1,6 @@
 <script lang="ts">
-  import PublicShell from "$lib/components/PublicShell.svelte";
-  import { apiRequest } from "$lib/client/api";
+  import PublicShell from "#lib/components/PublicShell.svelte";
+  import { apiRequest } from "#lib/client/api.js";
 
   let name = $state("");
   let email = $state("");

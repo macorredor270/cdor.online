@@ -1,6 +1,6 @@
 <script lang="ts">
-  import AuthCard from "$lib/components/AuthCard.svelte";
-  import PublicShell from "$lib/components/PublicShell.svelte";
+  import AuthCard from "#lib/components/AuthCard.svelte";
+  import PublicShell from "#lib/components/PublicShell.svelte";
 
   let email = $state("");
   let pending = $state(false);

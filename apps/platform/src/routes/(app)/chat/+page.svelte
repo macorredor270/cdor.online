@@ -1,10 +1,10 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import type { Conversation } from "@cdor/contracts";
-  import { apiRequest } from "$lib/client/api";
-  import { toasts } from "$lib/client/toast.svelte";
-  import Composer from "$lib/components/Composer.svelte";
-  import Logo from "$lib/components/Logo.svelte";
+  import { apiRequest } from "#lib/client/api.js";
+  import { toasts } from "#lib/client/toast.svelte.js";
+  import Composer from "#lib/components/Composer.svelte";
+  import Logo from "#lib/components/Logo.svelte";
 
   let { data } = $props();
   let prompt = $state("");

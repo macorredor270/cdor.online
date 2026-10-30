@@ -9,10 +9,10 @@ import { onDestroy, tick, untrack } from "svelte";
     Conversation,
     MessageListData
   } from "@cdor/contracts";
-  import { apiRequest, readChatStream } from "$lib/client/api";
-  import Composer from "$lib/components/Composer.svelte";
-  import Markdown from "$lib/components/Markdown.svelte";
-  import Logo from "$lib/components/Logo.svelte";
+  import { apiRequest, readChatStream } from "#lib/client/api.js";
+  import Composer from "#lib/components/Composer.svelte";
+  import Markdown from "#lib/components/Markdown.svelte";
+  import Logo from "#lib/components/Logo.svelte";
 
   let { data } = $props();
   let conversation = $state<Conversation>(
@@ -51,7 +51,7 @@ import { onDestroy, tick, untrack } from "svelte";
 
     seeded = true;
     prompt = immediate ?? draft ?? "";
-    void goto(url.pathname, { replaceState: true, noScroll: true, keepFocus: true });
+    void goto(url.pathname, { replace: true, reset: false });
     if (immediate) void send();
   });
 
