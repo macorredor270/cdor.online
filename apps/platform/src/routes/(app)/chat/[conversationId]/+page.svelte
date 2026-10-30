@@ -471,7 +471,14 @@
         <Icon name="arrowDown" size={18} />
       </button>
     {/if}
-    {#if chatError}<p class="error" role="alert">{chatError}</p>{/if}
+    {#if chatError}
+      <div class="chat-error" role="alert">
+        <span>{chatError}</span>
+        <button type="button" aria-label="Cerrar el aviso" onclick={() => (chatError = "")}>
+          <Icon name="close" size={16} />
+        </button>
+      </div>
+    {/if}
     {#if usage}
       <p class="usage" aria-live="polite">
         {usage.inputTokens + usage.outputTokens} tokens en esta respuesta
@@ -752,10 +759,41 @@
     background: var(--surface-3);
   }
 
-  .usage,
-  .composer-wrap > .error {
+  .usage {
     margin: 0 0 var(--space-2);
     font-size: var(--text-sm);
+  }
+
+  .chat-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+    border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    color: var(--danger);
+    font-size: var(--text-sm);
+    animation: mac-rise var(--motion-fast) var(--easing-out);
+  }
+
+  .chat-error button {
+    display: grid;
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .chat-error button:hover {
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
   }
 
   .usage {

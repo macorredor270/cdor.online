@@ -227,6 +227,12 @@
     location.assign("/");
   }
 
+  // `autofocus` no actúa sobre elementos insertados tras la carga: el
+  // buscador aparece al pedirlo, así que se enfoca explícitamente.
+  function focusOnMount(node: HTMLInputElement) {
+    node.focus();
+  }
+
   function onWindowKey(event: KeyboardEvent) {
     if (event.key === "Escape" && drawerOpen) drawerOpen = false;
   }
@@ -367,13 +373,12 @@
         <div class="search">
           <Icon name="search" size={16} />
           <label class="sr-only" for="sidebar-search">Buscar conversaciones</label>
-          <!-- svelte-ignore a11y_autofocus -->
           <input
             id="sidebar-search"
             type="search"
             placeholder="Buscar conversaciones"
             autocomplete="off"
-            autofocus
+            use:focusOnMount
             bind:value={query}
             onkeydown={(event) => {
               if (event.key === "Escape") {
