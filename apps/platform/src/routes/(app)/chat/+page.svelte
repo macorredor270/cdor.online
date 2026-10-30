@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { goto } from "$app/navigation";
   import type { Conversation } from "@cdor/contracts";
   import { apiRequest } from "#lib/client/api.js";
@@ -9,7 +10,8 @@
   let { data } = $props();
   let prompt = $state("");
   let creating = $state(false);
-  let webSearch = $state(Boolean(data.webSearchEnabled));
+  // Initial value only: the user toggles it afterwards.
+  let webSearch = $state(untrack(() => Boolean(data.webSearchEnabled)));
 
   /**
    * La pantalla vacía ya no es un catálogo de sugerencias: es el compositor.
@@ -81,8 +83,9 @@
 
   .middle {
     display: grid;
-    width: min(46rem, 100%);
+    width: min(var(--width-chat), 100%);
     gap: var(--space-6);
+    animation: mac-rise var(--motion-slow) var(--easing-out);
   }
 
   .head {
@@ -118,7 +121,7 @@
 
   @media (max-width: 760px) {
     .empty {
-      height: calc(100dvh - 3.7rem);
+      height: calc(100dvh - var(--topbar-height));
     }
   }
 </style>

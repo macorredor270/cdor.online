@@ -86,7 +86,7 @@
     justify-content: flex-start;
     gap: var(--space-3);
     border: 1px solid var(--border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--surface-2) 88%, white 2%);
     padding: 0.65rem 1rem;
     color: var(--text);
@@ -107,7 +107,7 @@
   }
 
   .provider-button:focus-visible {
-    outline: 2px solid var(--focus);
+    outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
     outline-offset: 2px;
   }
 

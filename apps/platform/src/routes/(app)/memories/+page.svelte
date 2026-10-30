@@ -2,6 +2,7 @@
   import type { Memory } from "@cdor/contracts";
   import { apiRequest } from "#lib/client/api.js";
   import { toasts } from "#lib/client/toast.svelte.js";
+  import AppPage from "#lib/components/AppPage.svelte";
   import ConfirmDialog from "#lib/components/ConfirmDialog.svelte";
   import Skeleton from "#lib/components/Skeleton.svelte";
 
@@ -104,15 +105,13 @@
 
 <svelte:head><title>Memorias — MAC</title></svelte:head>
 
-<div class="page">
-  <header>
-    <p class="eyebrow">Contexto bajo tu control</p>
-    <h1>Memorias</h1>
-    <p class="muted">
+<AppPage eyebrow="Contexto bajo tu control" title="Memorias">
+  {#snippet description()}
+    <p>
       MAC solo incluye en el contexto las memorias activas. Puedes desactivar o
       eliminar cualquiera en todo momento.
     </p>
-  </header>
+  {/snippet}
 
   <form class="panel create" onsubmit={createMemory}>
     <div class="field wide">
@@ -175,8 +174,13 @@
     {#each memories ?? [] as memory (memory.id)}
       <article class:disabled={!memory.enabled} class="panel">
         <div class="memory-head">
-          <span>{memory.category}</span>
-          <span>Importancia {memory.importance}/5</span>
+          <span class="category">{memory.category}</span>
+          <span class="importance" aria-label={`Importancia ${memory.importance} de 5`}>
+            {#each [1, 2, 3, 4, 5] as level (level)}
+              <i class:on={level <= memory.importance}></i>
+            {/each}
+          </span>
+          {#if !memory.enabled}<span class="state">Desactivada</span>{/if}
         </div>
         <p>{memory.content}</p>
         <footer>
@@ -195,7 +199,7 @@
       </article>
     {/each}
   </section>
-</div>
+</AppPage>
 
 <ConfirmDialog
   open={removing !== null}
@@ -208,43 +212,13 @@
 />
 
 <style>
-  .page {
-    width: min(960px, calc(100% - 2rem));
-    margin: 0 auto;
-    padding: clamp(2rem, 6vw, 5rem) 0;
-  }
-
-  header {
-    max-width: 650px;
-    margin-bottom: 2rem;
-  }
-
-  .eyebrow {
-    margin: 0;
-    color: var(--accent-strong);
-    font-size: var(--text-xs);
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  h1 {
-    margin: 0.35rem 0;
-    font-size: var(--text-display);
-    letter-spacing: -0.045em;
-  }
-
-  header p:last-child {
-    margin: 0;
-  }
-
   .create {
     display: grid;
     /* La última columna se ajusta al botón: fijada en 10rem partía
        "Guardar memoria" en dos líneas. */
     grid-template-columns: minmax(0, 1fr) 12rem auto;
-    gap: 1rem;
-    padding: 1.2rem;
+    gap: var(--space-4);
+    padding: var(--space-6);
   }
 
   .create .wide {
@@ -257,37 +231,79 @@
 
   .memory-list {
     display: grid;
-    gap: 1rem;
-    margin-top: 2rem;
+    gap: var(--space-3);
+    margin-top: var(--space-8);
   }
 
   article,
   .empty {
-    padding: 1.2rem;
+    padding: var(--space-6);
+  }
+
+  article {
+    animation: mac-rise var(--motion-base) var(--easing-out);
+    transition: opacity var(--motion-base) var(--easing);
   }
 
   article.disabled {
     opacity: 0.62;
   }
 
+  .empty h2 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-lg);
+  }
+
+  .empty p {
+    margin: 0;
+  }
+
   .loading {
     display: grid;
     gap: var(--space-3);
-    padding: 1.1rem;
   }
 
   .memory-head {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .category {
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    padding: 0.15rem var(--space-2);
     color: var(--accent-strong);
     font-size: var(--text-xs);
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-weight: 650;
+  }
+
+  .importance {
+    display: inline-flex;
+    gap: 3px;
+  }
+
+  .importance i {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--surface-3);
+  }
+
+  .importance i.on {
+    background: var(--accent);
+  }
+
+  .state {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: var(--text-xs);
   }
 
   article > p {
-    margin: 0.8rem 0 1.2rem;
+    margin: var(--space-3) 0 var(--space-4);
+    line-height: var(--leading-normal);
     white-space: pre-wrap;
   }
 
@@ -295,22 +311,22 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--space-4);
   }
 
   article footer time {
     color: var(--text-muted);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
   }
 
   article footer div {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   article footer .button {
-    min-height: 2.2rem;
-    padding: 0.4rem 0.7rem;
+    min-height: 2.25rem;
+    padding: 0.4rem 0.8rem;
     font-size: var(--text-sm);
   }
 

@@ -11,10 +11,6 @@
   /** Etiqueta visible: lo que escribió el modelo, o "texto" si no puso nada. */
   const label = $derived(language.trim().split(/\s+/)[0] || "texto");
 
-  function currentTheme(): "dark" | "light" {
-    return document.documentElement.dataset.theme === "light" ? "light" : "dark";
-  }
-
   $effect(() => {
     // Solo se pide resaltado cuando el bloque ya está completo y el lenguaje
     // es conocido. Durante el streaming el bloque llega troceado y volver a
@@ -25,7 +21,7 @@
       return;
     }
     let cancelled = false;
-    void highlight(code, language, currentTheme()).then((result) => {
+    void highlight(code, language).then((result) => {
       if (!cancelled) lines = result;
     });
     return () => {
@@ -56,9 +52,11 @@
   <pre><code
       >{#if lines}{#each lines as line, index (index)}<span class="line"
             >{#each line as token, position (position)}<span
-                style:color={token.color}
-                style:font-style={token.fontStyle === 1 ? "italic" : null}
-                style:font-weight={token.fontStyle === 2 ? "bold" : null}
+                class="token"
+                style:--hl-dark={token.dark.color}
+                style:--hl-light={token.light.color}
+                style:font-style={(token.dark.fontStyle ?? 0) & 1 ? "italic" : null}
+                style:font-weight={(token.dark.fontStyle ?? 0) & 2 ? "bold" : null}
                 >{token.content}</span
               >{/each}</span
           >{/each}{:else}{value}{/if}</code
@@ -129,5 +127,13 @@
   .line {
     display: block;
     min-height: 1lh;
+  }
+
+  .token {
+    color: var(--hl-dark, inherit);
+  }
+
+  :global(:root[data-theme="light"]) .token {
+    color: var(--hl-light, inherit);
   }
 </style>

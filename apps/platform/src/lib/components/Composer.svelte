@@ -173,7 +173,8 @@
   /* El foco vive en la caja, no en el textarea: dentro, un anillo alrededor de
      un campo sin borde propio parecía un segundo control. */
   .composer:focus-within {
-    border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
   textarea {
@@ -220,9 +221,9 @@
     align-items: center;
     gap: 0.35rem;
     border: 1px solid var(--border);
-    border-radius: 0.78rem;
+    border-radius: var(--radius-pill);
     background: transparent;
-    padding: 0.35rem 0.75rem;
+    padding: 0.35rem 0.85rem;
     color: var(--text-muted);
     font: inherit;
     font-size: var(--text-xs);
@@ -266,7 +267,7 @@
     align-items: center;
     gap: var(--space-2);
     border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border));
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--warning) 9%, transparent);
     padding: 0.65rem 0.75rem;
     color: var(--text-muted);

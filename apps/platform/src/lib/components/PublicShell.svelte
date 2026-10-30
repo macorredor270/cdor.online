@@ -504,7 +504,7 @@
       flex: 0 0 auto;
       place-items: center;
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-control);
       background: var(--surface-2);
       color: var(--text);
       cursor: pointer;
@@ -520,7 +520,7 @@
     }
 
     .nav-toggle:focus-visible {
-      outline: 2px solid var(--focus);
+      outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
       outline-offset: 2px;
     }
 

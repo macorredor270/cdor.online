@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onDestroy, tick, untrack } from "svelte";
+  import { onDestroy, tick, untrack } from "svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { ulid } from "ulid";
@@ -12,6 +12,7 @@ import { onDestroy, tick, untrack } from "svelte";
   import { apiRequest, readChatStream } from "#lib/client/api.js";
   import Composer from "#lib/components/Composer.svelte";
   import Markdown from "#lib/components/Markdown.svelte";
+  import Icon from "#lib/components/Icon.svelte";
   import Logo from "#lib/components/Logo.svelte";
 
   let { data } = $props();
@@ -28,7 +29,8 @@ import { onDestroy, tick, untrack } from "svelte";
   let prompt = $state("");
   let temporary = $state(false);
   let temporaryCleanupStarted = false;
-  let webSearch = $state(Boolean(data.webSearchEnabled));
+  // Initial value only: the user toggles it afterwards.
+  let webSearch = $state(untrack(() => Boolean(data.webSearchEnabled)));
 
   /**
    * Arranque procedente de la pantalla vacía.
@@ -126,6 +128,17 @@ import { onDestroy, tick, untrack } from "svelte";
     }
   });
 
+  // Al abrir una conversación se empieza por el final, como en cualquier chat.
+  $effect(() => {
+    void activeConversationId;
+    untrack(() => {
+      void tick().then(() => {
+        messageList?.scrollTo({ top: messageList.scrollHeight });
+        atBottom = true;
+      });
+    });
+  });
+
   // Confirmación efímera del copiado: sin toast ni dependencia nueva.
   let copiedId = $state<string | null>(null);
 
@@ -141,12 +154,30 @@ import { onDestroy, tick, untrack } from "svelte";
     }
   }
 
-  async function scrollToBottom() {
+  /**
+   * Seguimiento del final de la conversación.
+   *
+   * Mientras el usuario está abajo, cada fragmento del streaming mantiene la
+   * vista pegada al final. Si sube a releer algo, se le deja en paz y aparece
+   * un botón para volver.
+   */
+  let atBottom = $state(true);
+
+  function updateAtBottom() {
+    if (!messageList) return;
+    const distance =
+      messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
+    atBottom = distance < 120;
+  }
+
+  async function scrollToBottom(force = false) {
+    if (!force && !atBottom) return;
     await tick();
     messageList?.scrollTo({
       top: messageList.scrollHeight,
       behavior: "smooth"
     });
+    atBottom = true;
   }
 
   async function loadOlder() {
@@ -253,7 +284,7 @@ import { onDestroy, tick, untrack } from "svelte";
     };
     messages = [...messages, optimistic];
     void maybeRename(content);
-    await scrollToBottom();
+    await scrollToBottom(true);
 
     await runGeneration("/api/v1/chat/stream", {
       conversationId: conversation.id,
@@ -303,7 +334,7 @@ import { onDestroy, tick, untrack } from "svelte";
     chatError = "";
     streamingText = "";
     usage = null;
-    await scrollToBottom();
+    await scrollToBottom(true);
     await runGeneration("/api/v1/chat/regenerate", {
       conversationId: conversation.id,
       sourceMessageId,
@@ -350,7 +381,13 @@ import { onDestroy, tick, untrack } from "svelte";
     {/if}
   </header>
 
-  <div class="messages" bind:this={messageList} role="log" aria-label="Mensajes">
+  <div
+    class="messages"
+    bind:this={messageList}
+    onscroll={updateAtBottom}
+    role="log"
+    aria-label="Mensajes"
+  >
     <div class="message-column">
       {#if hasOlder}
         <button class="older" type="button" onclick={loadOlder} disabled={loadingOlder}>
@@ -360,7 +397,7 @@ import { onDestroy, tick, untrack } from "svelte";
 
       {#if messages.length === 0 && !busy}
         <div class="conversation-empty">
-          <span aria-hidden="true">✦</span>
+          <Logo size="auth" alt="" />
           <h2>Empieza con una idea</h2>
           <p>Pregunta, redacta, analiza o continúa algo que ya tenías en mente.</p>
         </div>
@@ -388,7 +425,7 @@ import { onDestroy, tick, untrack } from "svelte";
                 type="button"
                 onclick={() => copyMessage(message.id, message.content)}
               >
-                {copiedId === message.id ? "Copiado" : "Copiar"}
+                {copiedId === message.id ? "Copiado ✓" : "Copiar"}
               </button>
               {#if message.id === lastAssistantId && !busy}
                 <button
@@ -424,13 +461,23 @@ import { onDestroy, tick, untrack } from "svelte";
   </div>
 
   <div class="composer-wrap">
+    {#if !atBottom}
+      <button
+        class="to-bottom"
+        type="button"
+        aria-label="Ir al último mensaje"
+        onclick={() => scrollToBottom(true)}
+      >
+        <Icon name="arrowDown" size={18} />
+      </button>
+    {/if}
     {#if chatError}<p class="error" role="alert">{chatError}</p>{/if}
     {#if usage}
       <p class="usage" aria-live="polite">
         {usage.inputTokens + usage.outputTokens} tokens en esta respuesta
       </p>
     {/if}
-  <Composer
+    <Composer
       bind:value={prompt}
       {busy}
       canStop={generationId !== null}
@@ -446,25 +493,36 @@ import { onDestroy, tick, untrack } from "svelte";
 <style>
   .chat {
     display: grid;
-    height: 100vh;
+    height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
 
   header {
     display: flex;
-    min-height: 3.4rem;
+    min-height: 3.5rem;
     align-items: center;
-    gap: 1rem;
-    padding: 0.6rem clamp(1rem, 4vw, 2.4rem);
+    gap: var(--space-4);
+    padding: var(--space-2) var(--gutter);
   }
 
   .title-wrap {
     min-width: 0;
   }
 
+  header h1 {
+    overflow: hidden;
+    margin: 0;
+    color: var(--text);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .temporary-badge {
     display: block;
-    margin-bottom: 0.15rem;
+    margin-bottom: 0.1rem;
     color: var(--accent-strong);
     font-size: var(--text-xs);
     font-weight: 650;
@@ -476,7 +534,7 @@ import { onDestroy, tick, untrack } from "svelte";
     border: 1px solid var(--border);
     border-radius: var(--radius-pill);
     background: transparent;
-    padding: 0 0.85rem;
+    padding: 0 var(--space-4);
     color: var(--text-muted);
     font: inherit;
     font-size: var(--text-sm);
@@ -490,110 +548,99 @@ import { onDestroy, tick, untrack } from "svelte";
     color: var(--text);
   }
 
-  header h1 {
-    overflow: hidden;
-    margin: 0;
-    color: var(--text-muted);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  header h1 {
-    max-width: min(65vw, 700px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: var(--text-base);
-  }
-
-
   .messages {
     overflow-y: auto;
     overscroll-behavior: contain;
-    scroll-behavior: smooth;
   }
 
+  /* minmax(0, 1fr): sin él la pista crece hasta el ancho mínimo de un bloque
+     de código o una tabla y la página se desborda en horizontal en móvil. */
   .message-column {
     display: grid;
-    width: min(800px, calc(100% - 2rem));
+    width: min(var(--width-chat), calc(100% - 2 * var(--gutter)));
     margin: 0 auto;
-    gap: 1.5rem;
-    padding: 2.5rem 0 2rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+    padding: var(--space-6) 0 var(--space-8);
   }
 
   article {
+    min-width: 0;
     content-visibility: auto;
     contain-intrinsic-size: auto 140px;
+    animation: mac-rise var(--motion-base) var(--easing-out);
   }
 
-  /* El turno del usuario lleva el púrpura sólido; la respuesta de MAC se queda
-     sobre el fondo de la página para no penalizar la legibilidad de textos
-     largos ni de los bloques de código. */
+  /* El turno del usuario se distingue por la superficie; la respuesta de MAC
+     se queda sobre el fondo para no penalizar textos largos ni código. */
   article.user {
     width: fit-content;
-    max-width: min(85%, 680px);
+    max-width: min(85%, 40rem);
     justify-self: end;
-    border: 0;
-    border-radius: 1.25rem;
+    border-radius: 1.25rem 1.25rem 0.375rem 1.25rem;
     background: var(--surface-2);
-    padding: 0.75rem 1.1rem;
-    color: var(--text);
-  }
-
-  article.user .message-meta {
-    color: var(--text-muted);
+    padding: var(--space-3) var(--space-4);
   }
 
   .message-meta {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    margin-bottom: 0.45rem;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
     font-size: var(--text-sm);
+  }
+
+  article.user .message-meta {
+    margin-bottom: var(--space-1);
+    font-size: var(--text-xs);
   }
 
   .message-meta time,
   .thinking {
     color: var(--text-muted);
-  }
-
-  /* Sobre el púrpura sólido el gris de apoyo no contrasta lo suficiente. */
-  article.user .message-meta time {
-    color: var(--text-muted);
+    font-size: var(--text-xs);
   }
 
   .user-content {
     margin: 0;
+    overflow-wrap: anywhere;
     white-space: pre-wrap;
   }
 
   .older {
     justify-self: center;
-    border: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
     background: transparent;
+    padding: var(--space-1) var(--space-4);
     color: var(--text-muted);
+    font-size: var(--text-sm);
     cursor: pointer;
   }
 
+  .older:hover:not(:disabled) {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  /* Acciones discretas: se ven sin pesar, y ganan presencia al pasar. */
   .message-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.55rem;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
   }
 
   .message-action {
-    /* 2.25rem de alto mantiene el objetivo táctil cómodo en móvil. */
-    min-height: 2.25rem;
-    padding: 0.3rem 0.8rem;
-    border: 1px solid var(--border);
-    border-radius: 999px;
+    min-height: 2rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-pill);
     background: transparent;
+    padding: 0 var(--space-3);
     color: var(--text-muted);
     font: inherit;
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
+    font-weight: 550;
     cursor: pointer;
     transition:
       color var(--motion-fast) var(--easing),
@@ -603,29 +650,28 @@ import { onDestroy, tick, untrack } from "svelte";
 
   .message-action:hover,
   .message-action:focus-visible {
-    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-    background: var(--accent-soft);
-    color: var(--accent-strong);
+    border-color: var(--border);
+    background: var(--surface-2);
+    color: var(--text);
   }
 
   .conversation-empty {
     display: grid;
-    min-height: 50vh;
+    min-height: 45vh;
     place-content: center;
     justify-items: center;
+    gap: var(--space-2);
     text-align: center;
   }
 
-  .conversation-empty > span {
-    color: var(--accent-strong);
-    font-size: var(--text-2xl);
-  }
-
   .conversation-empty h2 {
-    margin: 0.7rem 0 0.25rem;
+    margin: var(--space-3) 0 0;
+    font-size: var(--text-xl);
+    letter-spacing: -0.01em;
   }
 
   .conversation-empty p {
+    max-width: 26rem;
     margin: 0;
     color: var(--text-muted);
   }
@@ -633,15 +679,15 @@ import { onDestroy, tick, untrack } from "svelte";
   .dots {
     display: flex;
     gap: 0.3rem;
-    padding: 0.4rem 0;
+    padding: var(--space-2) 0;
   }
 
   .dots i {
     width: 0.45rem;
     height: 0.45rem;
     border-radius: 50%;
-    background: var(--text-muted);
-    animation: pulse 1s ease-in-out infinite alternate;
+    background: var(--accent);
+    animation: pulse 0.9s ease-in-out infinite alternate;
   }
 
   .dots i:nth-child(2) {
@@ -653,16 +699,57 @@ import { onDestroy, tick, untrack } from "svelte";
   }
 
   @keyframes pulse {
+    from {
+      opacity: 0.9;
+    }
+
     to {
-      opacity: 0.25;
+      opacity: 0.2;
       transform: translateY(-2px);
     }
   }
 
+  /* El compositor flota sobre un fundido del fondo: el texto que pasa por
+     debajo se desvanece en lugar de cortarse en seco. */
   .composer-wrap {
-    width: min(46rem, 100%);
+    position: relative;
+    width: min(var(--width-chat), calc(100% - 2 * var(--gutter)));
     margin: 0 auto;
-    padding: 0 var(--space-4) var(--space-4);
+    padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  }
+
+  .composer-wrap::before {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: var(--space-8);
+    background: linear-gradient(to top, var(--bg), transparent);
+    content: "";
+    pointer-events: none;
+  }
+
+  .to-bottom {
+    position: absolute;
+    z-index: 1;
+    bottom: calc(100% + var(--space-3));
+    left: 50%;
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface-2);
+    box-shadow: var(--shadow);
+    color: var(--text);
+    cursor: pointer;
+    transform: translateX(-50%);
+    animation: mac-rise var(--motion-fast) var(--easing-out);
+  }
+
+  .to-bottom:hover {
+    background: var(--surface-3);
   }
 
   .usage,
@@ -678,17 +765,7 @@ import { onDestroy, tick, untrack } from "svelte";
 
   @media (max-width: 760px) {
     .chat {
-      height: calc(100vh - 3.7rem);
-    }
-
-    header {
-      min-height: 3.7rem;
-    }
-
-
-    .message-column {
-      width: min(100% - 1.2rem, 800px);
-      padding-top: 1.5rem;
+      height: calc(100dvh - var(--topbar-height));
     }
 
     article.user {

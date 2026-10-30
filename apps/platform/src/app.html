@@ -20,6 +20,17 @@
     <meta property="og:image:alt" content="MAC, asistente virtual de inteligencia artificial" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://cdor.online/branding/og-image.png" />
+    <!-- Apply the stored theme before first paint to avoid a dark flash for
+         light-theme users. Keep in sync with src/lib/client/theme.ts. -->
+    <script>
+      try {
+        var t = localStorage.getItem("cdor-theme");
+        if (t === "system") {
+          t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

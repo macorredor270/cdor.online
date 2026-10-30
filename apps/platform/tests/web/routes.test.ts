@@ -59,8 +59,8 @@ describe("web routes", () => {
       "utf8"
     );
 
-    expect(emptyChat).toContain("$state(Boolean(data.webSearchEnabled))");
-    expect(conversation).toContain("$state(Boolean(data.webSearchEnabled))");
+    expect(emptyChat).toContain("$state(untrack(() => Boolean(data.webSearchEnabled)))");
+    expect(conversation).toContain("$state(untrack(() => Boolean(data.webSearchEnabled)))");
     expect(composer).toContain("webSearch = $bindable(true)");
     expect(composer).toContain("Búsqueda web desactivada.");
     expect(composer).toContain("desactualizado desde diciembre de 2023");

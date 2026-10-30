@@ -10,7 +10,54 @@ export type MarkdownBlock =
   | { type: "heading"; level: 1 | 2 | 3; content: InlineToken[] }
   | { type: "list"; ordered: boolean; items: InlineToken[][] }
   | { type: "code"; language: string; value: string }
-  | { type: "quote"; content: InlineToken[] };
+  | { type: "quote"; content: InlineToken[] }
+  | { type: "rule" }
+  | {
+      type: "table";
+      align: TableAlign[];
+      header: InlineToken[][];
+      rows: InlineToken[][][];
+    };
+
+export type TableAlign = "left" | "center" | "right" | null;
+
+/** Límites defensivos: el modelo no puede forzar tablas descomunales. */
+const MAX_TABLE_COLUMNS = 12;
+const MAX_TABLE_ROWS = 200;
+
+const TABLE_SEPARATOR = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$|^\s*\|\s*:?-+:?\s*\|\s*$/;
+const RULE = /^\s{0,3}([-*_])(\s*\1){2,}\s*$/;
+
+function splitRow(line: string): string[] {
+  let row = line.trim();
+  if (row.startsWith("|")) row = row.slice(1);
+  if (row.endsWith("|") && !row.endsWith("\\|")) row = row.slice(0, -1);
+  // Una barra escapada (\|) es contenido de la celda, no un separador.
+  return row
+    .split(/(?<!\\)\|/)
+    .map((cell) => cell.trim().replaceAll("\\|", "|"))
+    .slice(0, MAX_TABLE_COLUMNS);
+}
+
+function isTableStart(lines: string[], index: number): boolean {
+  const line = lines[index];
+  const next = lines[index + 1];
+  return (
+    line !== undefined &&
+    next !== undefined &&
+    line.includes("|") &&
+    TABLE_SEPARATOR.test(next)
+  );
+}
+
+function parseAlign(cell: string): TableAlign {
+  const left = cell.startsWith(":");
+  const right = cell.endsWith(":");
+  if (left && right) return "center";
+  if (right) return "right";
+  if (left) return "left";
+  return null;
+}
 
 const INLINE_PATTERN =
   /(`[^`\n]+`|\*\*[^*\n]+\*\*|\*[^*\n]+\*|\[[^\]\n]+\]\([^) \n]+\))/g;
@@ -91,9 +138,46 @@ export function parseMarkdown(source: string): MarkdownBlock[] {
       index += 1;
       continue;
     }
-    if (line.startsWith("> ")) {
-      blocks.push({ type: "quote", content: parseInline(line.slice(2)) });
+    if (isTableStart(lines, index)) {
+      const header = splitRow(line);
+      const align = splitRow(lines[index + 1])
+        .map(parseAlign)
+        .concat(Array(header.length).fill(null))
+        .slice(0, header.length);
+      const rows: InlineToken[][][] = [];
+      index += 2;
+      while (
+        index < lines.length &&
+        lines[index].includes("|") &&
+        lines[index].trim() &&
+        rows.length < MAX_TABLE_ROWS
+      ) {
+        const cells = splitRow(lines[index]);
+        rows.push(
+          header.map((_, column) => parseInline(cells[column] ?? ""))
+        );
+        index += 1;
+      }
+      blocks.push({
+        type: "table",
+        align,
+        header: header.map((cell) => parseInline(cell)),
+        rows
+      });
+      continue;
+    }
+    if (RULE.test(line)) {
+      blocks.push({ type: "rule" });
       index += 1;
+      continue;
+    }
+    if (/^>\s?/.test(line)) {
+      const quote: string[] = [];
+      while (index < lines.length && /^>\s?/.test(lines[index])) {
+        quote.push(lines[index].replace(/^>\s?/, ""));
+        index += 1;
+      }
+      blocks.push({ type: "quote", content: parseInline(quote.join("\n")) });
       continue;
     }
     const list = /^(\s*)([-*]|\d+\.)\s+(.+)$/.exec(line);
@@ -116,7 +200,9 @@ export function parseMarkdown(source: string): MarkdownBlock[] {
     while (
       index < lines.length &&
       lines[index].trim() &&
-      !/^(#{1,3})\s|^```|^> |^(\s*)([-*]|\d+\.)\s+/.test(lines[index])
+      !/^(#{1,3})\s|^```|^>|^(\s*)([-*]|\d+\.)\s+/.test(lines[index]) &&
+      !RULE.test(lines[index]) &&
+      !isTableStart(lines, index)
     ) {
       paragraph.push(lines[index]);
       index += 1;

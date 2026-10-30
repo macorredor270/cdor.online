@@ -30,6 +30,59 @@ describe("web client", () => {
     ]);
   });
 
+  it("parses GFM tables with alignment, escaped pipes and inline tokens", () => {
+    const blocks = parseMarkdown(
+      [
+        "Antes de la tabla",
+        "| Variable | Antes | Ahora |",
+        "| :--- | :---: | ---: |",
+        "| `ORIGIN` | Ejecución | **Build** |",
+        "| a \\| b | [x](javascript:alert(1)) |",
+        "",
+        "Después"
+      ].join("\n")
+    );
+    expect(blocks.map((block) => block.type)).toEqual([
+      "paragraph",
+      "table",
+      "paragraph"
+    ]);
+    const table = blocks[1];
+    if (table.type !== "table") throw new Error("se esperaba una tabla");
+    expect(table.align).toEqual(["left", "center", "right"]);
+    expect(table.header).toHaveLength(3);
+    expect(table.rows).toHaveLength(2);
+    expect(table.rows[0][0]).toEqual([{ type: "code", value: "ORIGIN" }]);
+    expect(table.rows[0][2]).toEqual([{ type: "strong", value: "Build" }]);
+    expect(table.rows[1][0]).toEqual([{ type: "text", value: "a | b" }]);
+    // Las filas cortas se completan y un enlace inseguro sigue siendo texto.
+    expect(table.rows[1][2]).toEqual([]);
+    expect(JSON.stringify(table)).not.toContain('"href":"javascript:');
+  });
+
+  it("caps table size so a response cannot force a huge grid", () => {
+    const header = `| ${Array.from({ length: 20 }, (_, i) => `c${i}`).join(" | ")} |`;
+    const separator = `| ${Array.from({ length: 20 }, () => "---").join(" | ")} |`;
+    const rows = Array.from({ length: 250 }, () => "| x | y |");
+    const [table] = parseMarkdown([header, separator, ...rows].join("\n"));
+    if (table.type !== "table") throw new Error("se esperaba una tabla");
+    expect(table.header).toHaveLength(12);
+    expect(table.rows).toHaveLength(200);
+  });
+
+  it("parses horizontal rules and multi-line quotes", () => {
+    expect(
+      parseMarkdown("uno\n\n---\n\n> primera\n> segunda\n\ndos").map(
+        (block) => block.type
+      )
+    ).toEqual(["paragraph", "rule", "quote", "paragraph"]);
+    const [quote] = parseMarkdown("> primera\n> segunda");
+    expect(quote).toEqual({
+      type: "quote",
+      content: [{ type: "text", value: "primera\nsegunda" }]
+    });
+  });
+
   it("decodes SSE split across arbitrary network chunks", async () => {
     const encoder = new TextEncoder();
     const source = [

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AppPage from "#lib/components/AppPage.svelte";
   import Skeleton from "#lib/components/Skeleton.svelte";
 
   let { data } = $props();
@@ -17,18 +18,26 @@
     { key: "inputTokens", label: "Tokens de entrada", note: "Prompts y contexto" },
     { key: "outputTokens", label: "Tokens de salida", note: "Respuestas del modelo" }
   ] as const;
+
+  /** Proporción de salida sobre el total, para la barra de reparto. */
+  function outputShare(input: number, output: number): number {
+    const total = input + output;
+    return total === 0 ? 0 : Math.round((output / total) * 100);
+  }
 </script>
 
 <svelte:head><title>Uso — MAC</title></svelte:head>
 
-<div class="page">
-  <header>
-    <p class="eyebrow">Últimos 30 días</p>
-    <h1 class="page-title">Uso</h1>
-    {#await data.summary then summary}
-      <span class="muted">{formatRange(summary.periodStart, summary.periodEnd)}</span>
+<AppPage eyebrow="Últimos 30 días" title="Uso">
+  {#snippet description()}
+    {#await data.summary}
+      <p>Calculando el periodo…</p>
+    {:then summary}
+      <p>{formatRange(summary.periodStart, summary.periodEnd)}</p>
+    {:catch}
+      <p>Periodo no disponible.</p>
     {/await}
-  </header>
+  {/snippet}
 
   {#await data.summary}
     <section class="metrics" aria-busy="true" aria-label="Cargando el resumen de uso">
@@ -49,6 +58,25 @@
           <small>{card.note}</small>
         </article>
       {/each}
+    </section>
+
+    {@const share = outputShare(summary.inputTokens, summary.outputTokens)}
+    <section class="split panel" aria-label="Reparto entre entrada y salida">
+      <div class="split-head">
+        <span>Entrada</span>
+        <span>Salida</span>
+      </div>
+      <div
+        class="bar"
+        role="img"
+        aria-label={`${100 - share}% de entrada y ${share}% de salida`}
+      >
+        <i style:width={`${100 - share}%`}></i>
+      </div>
+      <div class="split-head numbers">
+        <span>{100 - share}%</span>
+        <span>{share}%</span>
+      </div>
     </section>
 
     <section class="note panel">
@@ -76,63 +104,107 @@
       </button>
     </p>
   {/await}
-</div>
+</AppPage>
 
 <style>
-  .page {
-    width: min(960px, calc(100% - 2rem));
-    margin: 0 auto;
-    padding: clamp(2rem, 6vw, 5rem) 0;
-  }
-
-  .eyebrow {
-    color: var(--accent-strong);
-  }
-
-  .page-title {
-    margin: var(--space-2) 0;
-  }
-
   .metrics {
     display: grid;
-    margin-top: 2.2rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--space-3);
   }
 
   article {
     display: grid;
-    min-height: 11rem;
+    min-height: 9.5rem;
     align-content: space-between;
-    padding: 1.3rem;
+    gap: var(--space-2);
+    padding: var(--space-6);
+    animation: mac-rise var(--motion-base) var(--easing-out) backwards;
+  }
+
+  article:nth-child(2) {
+    animation-delay: 40ms;
+  }
+
+  article:nth-child(3) {
+    animation-delay: 80ms;
+  }
+
+  article:nth-child(4) {
+    animation-delay: 120ms;
   }
 
   article.primary {
     border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
     background:
-      radial-gradient(circle at 90% 0, color-mix(in srgb, var(--accent) 20%, transparent), transparent 45%),
+      linear-gradient(
+        160deg,
+        color-mix(in srgb, var(--accent) 14%, transparent),
+        transparent 60%
+      ),
       var(--surface);
   }
 
-  article span,
+  article span {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+
   article small {
     color: var(--text-muted);
+    font-size: var(--text-xs);
   }
 
   /* La cifra destaca dentro de su tarjeta, pero no compite con el título de
      la página: el titular sigue siendo el elemento más grande. */
   article strong {
     font-size: var(--text-2xl);
-    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+  }
+
+  .split {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding: var(--space-6);
+  }
+
+  .split-head {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .split-head.numbers {
+    color: var(--text);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bar {
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--accent) 22%, var(--surface-3));
+  }
+
+  .bar i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--mac-gradient);
+    transition: width var(--motion-slow) var(--easing-out);
   }
 
   .note {
     display: flex;
-    margin-top: 1rem;
+    margin-top: var(--space-3);
     align-items: center;
     justify-content: space-between;
-    gap: 2rem;
-    padding: 1.3rem;
+    gap: var(--space-8);
+    padding: var(--space-6);
   }
 
   .note h2,
@@ -140,9 +212,19 @@
     margin: 0;
   }
 
+  .note h2 {
+    font-size: var(--text-lg);
+  }
+
   .note p {
-    max-width: 620px;
-    margin-top: 0.35rem;
+    max-width: 38rem;
+    margin-top: var(--space-1);
+    font-size: var(--text-sm);
+  }
+
+  .note strong {
+    flex: 0 0 auto;
+    font-size: var(--text-sm);
   }
 
   .failed {
@@ -151,20 +233,15 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
-    margin-top: 2.2rem;
-    padding: 1.3rem;
+    padding: var(--space-6);
     color: var(--danger);
   }
 
   @media (max-width: 650px) {
-    .metrics {
-      grid-template-columns: 1fr;
-    }
-
     .note {
       align-items: flex-start;
       flex-direction: column;
-      gap: 1rem;
+      gap: var(--space-3);
     }
   }
 </style>
