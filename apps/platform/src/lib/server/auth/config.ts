@@ -89,8 +89,7 @@ export function createAuth(configuration: AuthConfiguration) {
           type: "string",
           required: false,
           input: false,
-          returned: true,
-          fieldName: "device_id"
+          returned: true
         }
       }
     },
