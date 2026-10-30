@@ -4,12 +4,14 @@ import {
 } from "@cdor/contracts";
 import type { Principal } from "../auth/principal";
 import { UsageRepository } from "../db/repositories/usage";
+import type { QuotaService } from "./quota";
 
 const PERIOD_DAYS = 30;
 
 export class UsageService {
   constructor(
     private readonly repository: UsageRepository,
+    private readonly quota: QuotaService,
     private readonly now: () => Date = () => new Date()
   ) {}
 
@@ -18,10 +20,10 @@ export class UsageService {
     const periodStart = new Date(
       periodEnd.getTime() - PERIOD_DAYS * 24 * 60 * 60 * 1_000
     );
-    const aggregate = await this.repository.summarize(
-      principal.userId,
-      periodStart
-    );
+    const [aggregate, quota] = await Promise.all([
+      this.repository.summarize(principal.userId, periodStart),
+      this.quota.snapshot(principal.userId)
+    ]);
     return UsageSummarySchema.parse({
       periodStart: periodStart.toISOString(),
       periodEnd: periodEnd.toISOString(),
@@ -29,7 +31,8 @@ export class UsageService {
       inputTokens: aggregate.inputTokens,
       outputTokens: aggregate.outputTokens,
       totalTokens: aggregate.inputTokens + aggregate.outputTokens,
-      knownCostMicrousd: aggregate.knownCostMicrousd.toString()
+      knownCostMicrousd: aggregate.knownCostMicrousd.toString(),
+      quota
     });
   }
 }

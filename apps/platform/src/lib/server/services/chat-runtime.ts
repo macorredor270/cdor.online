@@ -13,6 +13,7 @@ import { AppError } from "../errors/app-error";
 import type { AiProvider } from "../ai/types";
 import { openRouterModelIdFor } from "../ai/openrouter";
 import { ChatStreamService } from "./chat-stream";
+import { getQuotaService } from "./quota-runtime";
 import { ModelCatalogService } from "./models";
 
 let runtime:
@@ -72,7 +73,8 @@ export function getChatStreamService(): ChatStreamService {
       new GenerationRepository(getDatabaseClient().database),
       provider,
       model,
-      getSearchRuntime(model) ?? undefined
+      getSearchRuntime(model) ?? undefined,
+      getQuotaService()
     );
   }
   return service;

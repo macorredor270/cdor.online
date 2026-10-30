@@ -14,6 +14,7 @@ import { DeviceService } from "./devices";
 import { MemoryService } from "./memories";
 import { MessageService } from "./messages";
 import { MobileOAuthService } from "./mobile-oauth";
+import { getQuotaService } from "./quota-runtime";
 import { SyncService } from "./sync";
 import { UsageService } from "./usage";
 
@@ -51,7 +52,7 @@ export function getServices() {
       messages: new MessageService(new MessageRepository(database)),
       mobileOAuth: new MobileOAuthService(new MobileOAuthRepository(database)),
       sync: new SyncService(new SyncRepository(database)),
-      usage: new UsageService(new UsageRepository(database))
+      usage: new UsageService(new UsageRepository(database), getQuotaService())
     });
   }
   return services;

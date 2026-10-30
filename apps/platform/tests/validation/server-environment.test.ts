@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  parseFallbackEnvironment,
+  parseQuotaEnvironment,
   parseAiEnvironment,
   parseDatabaseEnvironment,
   parseOpenRouterEnvironment,
@@ -102,6 +104,63 @@ describe("configuración privada del servidor", () => {
         PUBLIC_STREAM_CANARY_TOKEN: "visible"
       })
     ).toThrowError(/PUBLIC_STREAM_CANARY_TOKEN/);
+  });
+
+  it("las cuotas tienen valores por defecto y el tope global está apagado", () => {
+    expect(parseQuotaEnvironment({})).toEqual({
+      QUOTA_USER_DAILY_MESSAGES: 100,
+      QUOTA_USER_DAILY_TOKENS: 150_000,
+      QUOTA_GLOBAL_DAILY_TOKENS: 0
+    });
+  });
+
+  it("las cuotas aceptan 0 para desactivar y tratan la cadena vacía como ausente", () => {
+    expect(
+      parseQuotaEnvironment({
+        QUOTA_USER_DAILY_MESSAGES: "0",
+        QUOTA_USER_DAILY_TOKENS: "",
+        QUOTA_GLOBAL_DAILY_TOKENS: "2500000"
+      })
+    ).toEqual({
+      QUOTA_USER_DAILY_MESSAGES: 0,
+      QUOTA_USER_DAILY_TOKENS: 150_000,
+      QUOTA_GLOBAL_DAILY_TOKENS: 2_500_000
+    });
+  });
+
+  it("las cuotas rechazan valores que no son enteros no negativos", () => {
+    for (const value of ["-1", "1.5", "cien", "10 000", "99999999999"]) {
+      expect(() =>
+        parseQuotaEnvironment({ QUOTA_USER_DAILY_MESSAGES: value })
+      ).toThrow(ServerEnvironmentError);
+    }
+  });
+
+  it("el respaldo en OpenRouter está desactivado salvo que se pida", () => {
+    expect(parseFallbackEnvironment({})).toEqual({ AI_FALLBACK_OPENROUTER: false });
+    expect(parseFallbackEnvironment({ AI_FALLBACK_OPENROUTER: "" })).toEqual({
+      AI_FALLBACK_OPENROUTER: false
+    });
+    expect(
+      parseFallbackEnvironment({ AI_FALLBACK_OPENROUTER: "true" })
+    ).toEqual({ AI_FALLBACK_OPENROUTER: true });
+    expect(() =>
+      parseFallbackEnvironment({ AI_FALLBACK_OPENROUTER: "yes" })
+    ).toThrow(ServerEnvironmentError);
+  });
+
+  it("las variables de cuota y respaldo no admiten prefijo PUBLIC_", () => {
+    for (const name of [
+      "PUBLIC_QUOTA_USER_DAILY_MESSAGES",
+      "PUBLIC_QUOTA_GLOBAL_DAILY_TOKENS"
+    ]) {
+      expect(() => parseQuotaEnvironment({ [name]: "5" })).toThrow(
+        ServerEnvironmentError
+      );
+    }
+    expect(() =>
+      parseFallbackEnvironment({ PUBLIC_AI_FALLBACK_OPENROUTER: "true" })
+    ).toThrow(ServerEnvironmentError);
   });
 
   it("rechaza secretos con prefijo PUBLIC_", () => {

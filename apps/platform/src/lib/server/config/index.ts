@@ -1,4 +1,8 @@
 import {
+  parseFallbackEnvironment,
+  parseQuotaEnvironment,
+  type FallbackEnvironment,
+  type QuotaEnvironment,
   parseAuthEnvironment,
   parseAiEnvironment,
   parseOpenRouterEnvironment,
@@ -23,6 +27,8 @@ let cachedAuthEnvironment: AuthEnvironment | undefined;
 let cachedAiEnvironment: AiEnvironment | undefined;
 let cachedOpenRouterEnvironment: OpenRouterEnvironment | undefined;
 let optionalOpenRouterEnvironment: OpenRouterEnvironment | null | undefined;
+let cachedQuotaEnvironment: QuotaEnvironment | undefined;
+let cachedFallbackEnvironment: FallbackEnvironment | undefined;
 let cachedStreamCanaryEnvironment: StreamCanaryEnvironment | undefined;
 
 export function getServerEnvironment(): ServerEnvironment {
@@ -69,6 +75,16 @@ export function getSocialAuthAvailability() {
 
 export function isWebSearchEnabled(): boolean {
   return Boolean(env.OPENROUTER_API_KEY);
+}
+
+export function getQuotaEnvironment(): QuotaEnvironment {
+  cachedQuotaEnvironment ??= parseQuotaEnvironment(env);
+  return cachedQuotaEnvironment;
+}
+
+export function getFallbackEnvironment(): FallbackEnvironment {
+  cachedFallbackEnvironment ??= parseFallbackEnvironment(env);
+  return cachedFallbackEnvironment;
 }
 
 export function getStreamCanaryEnvironment(): StreamCanaryEnvironment {

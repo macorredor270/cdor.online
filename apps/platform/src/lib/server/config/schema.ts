@@ -25,6 +25,10 @@ export const SERVER_SECRET_ENV_NAMES = Object.freeze([
   "OPENROUTER_BASE_URL",
   "OPENROUTER_DEFAULT_MODEL",
   "OPENROUTER_REQUEST_TIMEOUT_MS",
+  "QUOTA_USER_DAILY_MESSAGES",
+  "QUOTA_USER_DAILY_TOKENS",
+  "QUOTA_GLOBAL_DAILY_TOKENS",
+  "AI_FALLBACK_OPENROUTER",
   "GITHUB_CLIENT_ID",
   "GITHUB_CLIENT_SECRET",
   "GOOGLE_CLIENT_ID",
@@ -58,6 +62,22 @@ const NvidiaRequestTimeoutSchema = z
   .transform(Number)
   .pipe(z.number().int().min(5_000).max(300_000))
   .default(120_000);
+
+/**
+ * Límite diario entero. `0` lo desactiva y una cadena vacía (variable sin
+ * rellenar en el panel de hosting) usa el valor por defecto.
+ */
+function quotaLimit(defaultValue: number) {
+  return z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z
+      .string()
+      .regex(/^\d{1,10}$/)
+      .transform(Number)
+      .pipe(z.number().int().min(0).max(4_000_000_000))
+      .default(defaultValue)
+  );
+}
 
 const OptionalModelIdSchema = z.preprocess(
   (value) => (value === "" ? undefined : value),
@@ -118,6 +138,18 @@ export const ServerEnvironmentSchema = z.object({
   OPENROUTER_BASE_URL: z.url().default("https://openrouter.ai/api/v1"),
   OPENROUTER_DEFAULT_MODEL: OptionalModelIdSchema,
   OPENROUTER_REQUEST_TIMEOUT_MS: NvidiaRequestTimeoutSchema,
+  // Mensajes y tokens por usuario y día UTC; tope global de tokens por día.
+  // El global está desactivado por defecto: actívalo al pasar a proveedores de
+  // pago para que un pico no se convierta en una factura sin techo.
+  QUOTA_USER_DAILY_MESSAGES: quotaLimit(100),
+  QUOTA_USER_DAILY_TOKENS: quotaLimit(150_000),
+  QUOTA_GLOBAL_DAILY_TOKENS: quotaLimit(0),
+  // Respaldo en OpenRouter (modelos gratuitos) cuando NVIDIA falla. Desactivado
+  // por defecto: los modelos gratuitos pueden registrar los prompts.
+  AI_FALLBACK_OPENROUTER: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    BooleanStringSchema.default(false)
+  ),
   GITHUB_CLIENT_ID: OptionalClientIdSchema,
   GITHUB_CLIENT_SECRET: OptionalSecretSchema,
   GOOGLE_CLIENT_ID: OptionalClientIdSchema,
@@ -160,6 +192,16 @@ export const AiEnvironmentSchema = ServerEnvironmentSchema.pick({
   NVIDIA_REQUEST_TIMEOUT_MS: true
 });
 
+export const QuotaEnvironmentSchema = ServerEnvironmentSchema.pick({
+  QUOTA_USER_DAILY_MESSAGES: true,
+  QUOTA_USER_DAILY_TOKENS: true,
+  QUOTA_GLOBAL_DAILY_TOKENS: true
+});
+
+export const FallbackEnvironmentSchema = ServerEnvironmentSchema.pick({
+  AI_FALLBACK_OPENROUTER: true
+});
+
 export const OpenRouterEnvironmentSchema = ServerEnvironmentSchema.pick({
   OPENROUTER_API_KEY: true,
   OPENROUTER_BASE_URL: true,
@@ -179,6 +221,12 @@ export type DatabaseEnvironment = Readonly<
 >;
 export type AuthEnvironment = Readonly<z.output<typeof AuthEnvironmentSchema>>;
 export type AiEnvironment = Readonly<z.output<typeof AiEnvironmentSchema>>;
+export type QuotaEnvironment = Readonly<
+  z.output<typeof QuotaEnvironmentSchema>
+>;
+export type FallbackEnvironment = Readonly<
+  z.output<typeof FallbackEnvironmentSchema>
+>;
 export type OpenRouterEnvironment = Readonly<
   z.output<typeof OpenRouterEnvironmentSchema>
 >;
@@ -271,6 +319,40 @@ export function parseAiEnvironment(
   }
 
   const result = AiEnvironmentSchema.safeParse(source);
+  if (!result.success) {
+    throw new ServerEnvironmentError(
+      result.error.issues.map((issue) => String(issue.path[0] ?? "unknown"))
+    );
+  }
+  return Object.freeze(result.data);
+}
+
+export function parseQuotaEnvironment(
+  source: Readonly<Record<string, string | undefined>>
+): QuotaEnvironment {
+  const publicSecretNames = findPublicSecretNames(source);
+  if (publicSecretNames.length > 0) {
+    throw new ServerEnvironmentError(publicSecretNames);
+  }
+
+  const result = QuotaEnvironmentSchema.safeParse(source);
+  if (!result.success) {
+    throw new ServerEnvironmentError(
+      result.error.issues.map((issue) => String(issue.path[0] ?? "unknown"))
+    );
+  }
+  return Object.freeze(result.data);
+}
+
+export function parseFallbackEnvironment(
+  source: Readonly<Record<string, string | undefined>>
+): FallbackEnvironment {
+  const publicSecretNames = findPublicSecretNames(source);
+  if (publicSecretNames.length > 0) {
+    throw new ServerEnvironmentError(publicSecretNames);
+  }
+
+  const result = FallbackEnvironmentSchema.safeParse(source);
   if (!result.success) {
     throw new ServerEnvironmentError(
       result.error.issues.map((issue) => String(issue.path[0] ?? "unknown"))
