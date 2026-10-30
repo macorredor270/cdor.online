@@ -1,81 +1,28 @@
 <script lang="ts">
-  import CodeBlock from "./CodeBlock.svelte";
-  import { parseMarkdown } from "#lib/client/markdown.js";
-  import InlineMarkdown from "./InlineMarkdown.svelte";
+  import { parseMarkdown } from "@cdor/markdown";
+  import MarkdownBlocks from "./MarkdownBlocks.svelte";
 
   let { source }: { source: string } = $props();
+  // Se vuelve a parsear en cada fragmento del streaming: la respuesta se ve
+  // ya formateada mientras se escribe.
   let blocks = $derived(parseMarkdown(source));
 </script>
 
 <div class="markdown">
-  {#each blocks as block}
-    {#if block.type === "paragraph"}
-      <p><InlineMarkdown tokens={block.content} /></p>
-    {:else if block.type === "heading"}
-      {#if block.level === 1}
-        <h2><InlineMarkdown tokens={block.content} /></h2>
-      {:else if block.level === 2}
-        <h3><InlineMarkdown tokens={block.content} /></h3>
-      {:else}
-        <h4><InlineMarkdown tokens={block.content} /></h4>
-      {/if}
-    {:else if block.type === "code"}
-      <CodeBlock language={block.language} value={block.value} />
-    {:else if block.type === "quote"}
-      <blockquote><InlineMarkdown tokens={block.content} /></blockquote>
-    {:else if block.type === "rule"}
-      <hr />
-    {:else if block.type === "table"}
-      <!-- La tabla se desplaza dentro de su marco: nunca ensancha la página.
-           Es enfocable para poder desplazarla con el teclado (WCAG 2.1.1). -->
-      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-      <div class="table-wrap" role="region" aria-label="Tabla" tabindex="0">
-        <table>
-          <thead>
-            <tr>
-              {#each block.header as cell, column}
-                <th style:text-align={block.align[column]}><InlineMarkdown tokens={cell} /></th>
-              {/each}
-            </tr>
-          </thead>
-          <tbody>
-            {#each block.rows as row}
-              <tr>
-                {#each row as cell, column}
-                  <td style:text-align={block.align[column]}><InlineMarkdown tokens={cell} /></td>
-                {/each}
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    {:else if block.ordered}
-      <ol>
-        {#each block.items as item}<li><InlineMarkdown tokens={item} /></li>{/each}
-      </ol>
-    {:else}
-      <ul>
-        {#each block.items as item}<li><InlineMarkdown tokens={item} /></li>{/each}
-      </ul>
-    {/if}
-  {/each}
+  <MarkdownBlocks {blocks} />
 </div>
 
 <style>
-  .markdown :global(p),
-  .markdown :global(h2),
-  .markdown :global(h3),
-  .markdown :global(h4),
-  .markdown :global(ol),
-  .markdown :global(ul),
-  .markdown :global(blockquote) {
+  .markdown {
+    line-height: var(--leading-normal);
+    overflow-wrap: anywhere;
+  }
+
+  .markdown :global(:is(p, ul, ol, blockquote, .table-wrap, h2, h3, h4, h5, h6)) {
     margin: 0 0 0.8rem;
   }
 
-  .markdown :global(p:last-child),
-  .markdown :global(ol:last-child),
-  .markdown :global(ul:last-child),
-  .markdown :global(blockquote:last-child) {
+  .markdown :global(:is(p, ul, ol, blockquote, .table-wrap):last-child) {
     margin-bottom: 0;
   }
 
@@ -83,40 +30,61 @@
     white-space: pre-wrap;
   }
 
+  .markdown :global(:is(h2, h3, h4, h5, h6)) {
+    margin-top: var(--space-6);
+    line-height: var(--leading-snug);
+    letter-spacing: -0.01em;
+  }
+
+  .markdown > :global(:first-child) {
+    margin-top: 0;
+  }
+
+  .markdown :global(.md-h1) {
+    font-size: var(--text-xl);
+  }
+
+  .markdown :global(.md-h2) {
+    font-size: var(--text-lg);
+  }
+
+  .markdown :global(:is(.md-h3, .md-h4)) {
+    font-size: var(--text-base);
+  }
+
+  .markdown :global(:is(.md-h5, .md-h6)) {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+  }
+
   .markdown :global(a) {
     color: var(--accent-strong);
+    text-underline-offset: 0.18em;
+  }
+
+  .markdown :global(del) {
+    color: var(--text-muted);
   }
 
   .markdown :global(code) {
     font-family: var(--font-mono);
   }
 
-  .markdown {
-    line-height: var(--leading-normal);
-    overflow-wrap: anywhere;
+  .markdown :global(:is(p, li, td, th, blockquote, h2, h3, h4, h5, h6) code) {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    background: var(--surface-2);
+    padding: 0.06rem 0.32rem;
+    font-size: 0.9em;
   }
 
-  .markdown :global(h2),
-  .markdown :global(h3),
-  .markdown :global(h4) {
-    margin-top: var(--space-6);
-    line-height: var(--leading-snug);
+  .markdown :global(:is(ul, ol)) {
+    padding-left: 1.5rem;
   }
 
-  .markdown :global(h2) {
-    font-size: var(--text-xl);
-  }
-
-  .markdown :global(h3) {
-    font-size: var(--text-lg);
-  }
-
-  .markdown :global(h4) {
-    font-size: var(--text-base);
-  }
-
-  .markdown > :global(:first-child) {
-    margin-top: 0;
+  /* Las sublistas y bloques dentro de un elemento van más pegados. */
+  .markdown :global(li > :is(ul, ol, p, blockquote, .table-wrap)) {
+    margin: var(--space-1) 0 0;
   }
 
   .markdown :global(li + li) {
@@ -127,69 +95,88 @@
     color: var(--text-muted);
   }
 
-  .markdown :global(p code),
-  .markdown :global(li code),
-  .markdown :global(td code),
-  .markdown :global(blockquote code) {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-xs);
-    background: var(--surface-2);
-    padding: 0.06rem 0.32rem;
-    font-size: 0.9em;
+  .markdown :global(ul.tasks) {
+    padding-left: 0.25rem;
+    list-style: none;
   }
 
-  blockquote {
+  .markdown :global(li.task) {
+    position: relative;
+    padding-left: 1.75rem;
+  }
+
+  .markdown :global(.checkbox) {
+    position: absolute;
+    top: 0.3em;
+    left: 0;
+    width: 1.05em;
+    height: 1.05em;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 4px;
+  }
+
+  .markdown :global(.checkbox.checked) {
+    border-color: transparent;
+    background: var(--mac-gradient);
+  }
+
+  .markdown :global(.checkbox.checked)::after {
+    position: absolute;
+    top: 0.12em;
+    left: 0.32em;
+    width: 0.28em;
+    height: 0.55em;
+    border-right: 2px solid var(--on-accent);
+    border-bottom: 2px solid var(--on-accent);
+    content: "";
+    transform: rotate(45deg);
+  }
+
+  .markdown :global(blockquote) {
     border-left: 3px solid var(--accent);
     padding-left: var(--space-4);
     color: var(--text-muted);
-    white-space: pre-wrap;
   }
 
-  hr {
+  .markdown :global(hr) {
     height: 1px;
     margin: var(--space-6) 0;
     border: 0;
     background: var(--border);
   }
 
-  .table-wrap {
+  .markdown :global(.table-wrap) {
     max-width: 100%;
-    margin: 0 0 0.8rem;
     overflow-x: auto;
     border: 1px solid var(--border);
     border-radius: var(--radius-control);
   }
 
-  .table-wrap:last-child {
-    margin-bottom: 0;
-  }
-
-  table {
+  .markdown :global(table) {
     width: 100%;
     border-collapse: collapse;
     font-size: var(--text-sm);
     overflow-wrap: normal;
   }
 
-  th,
-  td {
+  .markdown :global(:is(th, td)) {
     border-bottom: 1px solid var(--border);
     padding: var(--space-2) var(--space-3);
     text-align: left;
     vertical-align: top;
   }
 
-  th {
+  .markdown :global(th) {
     background: var(--surface-2);
     font-weight: 650;
     white-space: nowrap;
   }
 
-  tbody tr:last-child td {
+  .markdown :global(tbody tr:last-child td) {
     border-bottom: 0;
   }
 
-  tbody tr:nth-child(even) td {
+  .markdown :global(tbody tr:nth-child(even) td) {
     background: color-mix(in srgb, var(--surface-2) 45%, transparent);
   }
 </style>

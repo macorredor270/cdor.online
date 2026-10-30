@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from "svelte";
   import type { ChatMessage, Conversation } from "@cdor/contracts";
+  import Markdown from "../markdown/Markdown.svelte";
 
   let {
     conversations,
@@ -144,7 +145,11 @@
             <strong>{message.role === "user" ? "Tú" : "MAC"}</strong>
             {#if message.status === "pending"}<small>En cola</small>{/if}
           </div>
-          <p>{message.content}</p>
+          {#if message.role === "assistant"}
+            <Markdown source={message.content} />
+          {:else}
+            <p>{message.content}</p>
+          {/if}
           {#if message.id === lastAssistantId && !streaming && online}
             <button
               class="retry"
@@ -161,7 +166,7 @@
         <article class="stream" aria-live="polite">
           <div><strong>MAC</strong><small>{streamText ? "Respondiendo" : "Pensando"}</small></div>
           {#if streamText}
-            <p>{streamText}</p>
+            <Markdown source={streamText} />
           {:else}
             <div class="dots" aria-label="Generando"><i></i><i></i><i></i></div>
           {/if}

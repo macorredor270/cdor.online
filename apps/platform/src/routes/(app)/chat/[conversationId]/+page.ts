@@ -17,9 +17,12 @@ export const load: PageLoad = async ({ fetch, params }) => {
     ]);
     return { conversation, messages };
   } catch (cause) {
+    // Un identificador mal formado (enlace roto o mal copiado) es, para quien
+    // lo abre, lo mismo que una conversación inexistente: 404, no un 500.
     if (
       cause instanceof ApiClientError &&
-      cause.body.code === "CONVERSATION_NOT_FOUND"
+      (cause.body.code === "CONVERSATION_NOT_FOUND" ||
+        cause.body.code === "VALIDATION_ERROR")
     ) {
       error(404, "La conversación no existe");
     }

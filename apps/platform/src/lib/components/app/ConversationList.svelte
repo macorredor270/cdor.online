@@ -70,7 +70,7 @@
     <div class="skeleton">
       <Skeleton lines={6} height="2.25rem" gap="var(--space-1)" />
     </div>
-  {:else if isEmpty}
+  {:else if isEmpty && !loadError}
     <p class="empty-hint">
       {query ? "Ninguna conversación coincide." : "Tus conversaciones aparecerán aquí."}
     </p>

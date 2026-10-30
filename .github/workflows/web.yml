@@ -13,6 +13,7 @@ on:
       - "pnpm-workspace.yaml"
       - "apps/platform/tests/web/**"
       - "packages/contracts/**"
+      - "packages/markdown/**"
       - "scripts/web/**"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -30,6 +31,7 @@ on:
       - "pnpm-workspace.yaml"
       - "apps/platform/tests/web/**"
       - "packages/contracts/**"
+      - "packages/markdown/**"
       - "scripts/web/**"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -54,6 +56,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --filter @cdor/platform...
       - run: pnpm --dir apps/platform check
+      - run: pnpm --dir packages/markdown test
       - run: pnpm test:web
       - run: pnpm test:e2e:web
       - run: pnpm scan:client-secrets

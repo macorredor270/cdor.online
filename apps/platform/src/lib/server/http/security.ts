@@ -13,7 +13,10 @@ const CONTENT_SECURITY_POLICY = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "img-src 'self' data: https://avatars.githubusercontent.com https://*.googleusercontent.com",
+  // Avatares de OAuth y, tras un clic del usuario, imágenes y medios externos
+  // enlazados por el modelo (ver MediaEmbed: nunca se cargan solos).
+  "img-src 'self' data: https://avatars.githubusercontent.com https://*.googleusercontent.com https:",
+  "media-src 'self' https:",
   "font-src 'self'",
   "connect-src 'self'",
   "style-src 'self' 'unsafe-inline'",

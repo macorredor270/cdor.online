@@ -110,6 +110,7 @@ pnpm build:hostinger
 apps/platform  → SvelteKit 3 + adapter-node 6 → Hostinger Business (cdor.online)
 apps/mobile    → Svelte + Tauri/Rust      → Android/iOS
 packages/contracts → Zod, fuente de verdad de tipos compartidos
+packages/markdown  → parser de Markdown del modelo (árbol tipado, sin HTML), web y móvil
 ```
 
 SvelteKit 3: no hay `svelte.config.js`; la configuración de Kit vive en

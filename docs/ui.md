@@ -55,11 +55,37 @@ comm -23 <(echo "$used") <(echo "$defined")   # solo deben salir --hl-dark y --h
 | `app/ConversationList` | Historial agrupado por fecha, renombrado en línea, acciones superpuestas. |
 | `app/AccountMenu` | Menú de cuenta; se cierra con Escape, clic fuera o navegación. |
 | `Composer` | Caja de mensaje con búsqueda web opcional. |
-| `Markdown` / `CodeBlock` | Párrafos, títulos, listas, citas, separadores, tablas GFM (máx. 12 columnas × 200 filas) y código resaltado. |
+| `Markdown` / `MarkdownBlocks` / `CodeBlock` | Render del árbol de `@cdor/markdown` (ver abajo) con código resaltado. |
+| `MediaEmbed` | Audio, vídeo e imagen enlazados por el modelo (ver abajo). |
 | `ConfirmDialog` | Sustituto accesible de `confirm()`. |
 | `ToastViewport` + `toasts` | Notificaciones con `role="status"`. |
 | `Skeleton` | Estados de carga. |
 | `PublicShell` / `AuthCard` / `LegalLayout` | Superficie pública y autenticación. |
+
+## Markdown y medios
+
+El parser vive en `packages/markdown` y lo comparten la web y el móvil; cada
+app tiene sus componentes de render. Se vuelve a parsear en cada fragmento del
+streaming, así que la respuesta se ve formateada mientras se escribe.
+
+- **Bloques:** títulos h1–h6 (y subrayados con `===`), párrafos, código con
+  ``` o ~~~ (también sin cerrar durante el streaming), citas anidadas con
+  Markdown dentro, listas anidadas, numeradas desde cualquier número, tareas
+  `[ ]`/`[x]`, tablas GFM con alineación (máx. 12 × 200) y separadores
+  (`---`, `***`, `___`, `- - -`, `——`).
+- **En línea:** negrita, cursiva, ambas, tachado, código, enlaces, URLs
+  sueltas, autoenlaces `<https://…>`, imágenes y escapes con `\`.
+- **Medios:** un enlace, URL o imagen **solo en su párrafo** que apunte a
+  audio (mp3, wav, ogg, m4a, aac, flac, opus), vídeo (mp4, webm, mov, m4v, ogv)
+  o imagen pasa a `MediaEmbed`. Dentro de una frase sigue siendo un enlace.
+- **Seguridad:** nunca HTML; solo http(s). Los medios externos **no se cargan
+  solos**: la tarjeta muestra el dominio y se carga al pulsar, porque una
+  carga automática revelaría la IP del usuario y permitiría filtrar datos de
+  la conversación en la URL mediante inyección de prompt. Los del propio
+  dominio cargan directamente; los `http://` solo se ofrecen como enlace. La
+  CSP permite `img-src` y `media-src` por `https:` para que el clic funcione.
+- **Límites:** profundidad máxima 6 y ventanas de búsqueda acotadas, para que
+  una respuesta hostil no bloquee el navegador (cubierto por pruebas).
 
 ## Patrones
 
