@@ -14,6 +14,8 @@ están en inglés. Mantén esa convención.
 desarrollo. `PLAN.md` solo apunta ahí. Antes de proponer un cambio estructural,
 comprueba las secciones 2.1–2.5 (límites inviolables) y 5 (orden obligatorio).
 `docs/milestones/M0.md`…`M15.md` registra lo entregado por milestone.
+`docs/ui.md` es la referencia del sistema de diseño web (tokens, tema,
+componentes y patrones); `docs/archive/` guarda documentos de trabajo antiguos.
 
 ## Toolchain
 

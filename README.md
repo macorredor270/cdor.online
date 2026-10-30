@@ -4,8 +4,8 @@
 
 <p align="center">
   <a href="https://cdor.online"><img alt="Sitio" src="https://img.shields.io/badge/web-cdor.online-a78bfa?style=flat-square"></a>
-  <img alt="Stack" src="https://img.shields.io/badge/SvelteKit%20%2F%20Tauri%202-a78bfa?style=flat-square">
-  <img alt="Licencia" src="https://img.shields.io/badge/estado-en%20producción-818cf8?style=flat-square">
+  <img alt="Stack" src="https://img.shields.io/badge/SvelteKit%203%20%2F%20Tauri%202-a78bfa?style=flat-square">
+  <img alt="Estado" src="https://img.shields.io/badge/estado-en%20producción-818cf8?style=flat-square">
 </p>
 
 ---
@@ -33,7 +33,7 @@ Monorepo gestionado con **pnpm workspaces**:
 
 | Directorio | Descripción |
 | --- | --- |
-| `apps/platform` | Aplicación **SvelteKit** (Svelte 5, TypeScript, Drizzle ORM sobre MySQL, Better Auth). Sirve la web y la API. Desplegada en Hostinger Business. |
+| `apps/platform` | Aplicación **SvelteKit 3** (Svelte 5, TypeScript, Drizzle ORM sobre MySQL, Better Auth 1.7). Sirve la web y la API. Desplegada en Hostinger Business. |
 | `apps/mobile` | Aplicación **Svelte 5 + Tauri 2 (Rust)** para Android e iOS. |
 | `packages/contracts` | Contratos compartidos en **Zod** — fuente de verdad de los tipos que consumen `platform` y `mobile`. |
 
@@ -95,3 +95,4 @@ El build de Hostinger no ejecuta Tauri, Cargo, Gradle ni Xcode.
 - [`CDOR_PLAN_DEFINITIVO.md`](./CDOR_PLAN_DEFINITIVO.md) — documento rector de arquitectura,
   límites y orden de desarrollo.
 - [`docs/`](./docs) — referencia de API, autenticación, modelo de datos, capa de IA y puente Tauri.
+- [`docs/ui.md`](./docs/ui.md) — sistema de diseño de la web: tokens, tema, componentes y patrones.
