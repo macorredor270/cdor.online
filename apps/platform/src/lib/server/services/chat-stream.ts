@@ -315,15 +315,11 @@ export class ChatStreamService {
   }
 
   #runtimeFor(webSearch: boolean | undefined) {
-    if (webSearch) {
-      if (!this.webSearchRuntime) {
-        throw new AppError(
-          "MODEL_UNAVAILABLE",
-          "La búsqueda web no está configurada en este entorno"
-        );
-      }
-      return this.webSearchRuntime;
-    }
+    // La búsqueda web es opt-in en el servidor (AI_WEB_SEARCH). Si un cliente
+    // la pide sin que esté activada, se atiende sin ella en vez de rechazar el
+    // mensaje: la app móvil la pide por defecto y las apps ya instaladas no se
+    // actualizan solas.
+    if (webSearch && this.webSearchRuntime) return this.webSearchRuntime;
     return { provider: this.provider, model: this.model };
   }
 

@@ -141,8 +141,10 @@ Los únicos eventos públicos son:
 - `error`: error estable de MAC, nunca el evento interno de NVIDIA.
 
 El cuerpo acepta `webSearch: true` para usar el modelo OpenRouter configurado
-para búsqueda. Si ese runtime no está configurado, la generación se rechaza
-con `MODEL_UNAVAILABLE`; el cliente nunca envía claves del proveedor.
+para búsqueda. La búsqueda es opt-in en el servidor (`AI_WEB_SEARCH`, ver
+[docs/ai.md](./ai.md)): si no está activada, el mensaje se atiende **sin ella**
+en lugar de rechazarse, porque la app móvil la pide por defecto. El cliente nunca
+envía claves del proveedor.
 
 La idempotencia protege la creación de mensajes y generaciones. No almacena ni
 reproduce una respuesta SSE completa.

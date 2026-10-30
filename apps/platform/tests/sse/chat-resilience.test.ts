@@ -250,6 +250,16 @@ describe("cuotas en el servicio de chat", () => {
     expect(await run(service)).toEqual(["start", "error"]);
   });
 
+  it("si piden búsqueda web y no está activada, se atiende sin ella", async () => {
+    const { service, repository } = build(new MockAiProvider());
+    await expect(
+      service.prepare(testPrincipal(USER_ID), { ...request, webSearch: true })
+    ).resolves.toBe(prepared);
+    expect(repository.prepare).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "mock", modelId: "mock/cdor" })
+    );
+  });
+
   it("sin servicio de cuotas el chat funciona igual", async () => {
     const repository = repositoryDouble();
     const service = new ChatStreamService(
