@@ -119,11 +119,23 @@
     <li>
       <strong>Resend:</strong> Envío de correo transaccional de verificación, soporte y recuperación de contraseña.
     </li>
+    <li>
+      <strong>Proveedores de inteligencia artificial:</strong> Para generar cada
+      respuesta, el texto de tu mensaje, las memorias que tengas activas y el
+      contexto de la conversación se envían al proveedor de IA que atiende esa
+      petición. MAC reparte las peticiones entre varios proveedores con nivel
+      gratuito (por ejemplo NVIDIA, Groq, Google o Mistral) y puede cambiar de
+      uno a otro, también si uno falla; no se indica cuál responde cada vez. No
+      se envían tu nombre ni tu correo. Algunos proveedores pueden registrar los
+      mensajes recibidos a través de su nivel gratuito o utilizarlos para mejorar
+      sus modelos, conforme a sus propias condiciones.
+    </li>
   </ul>
 
   <h2>6. Transferencias internacionales</h2>
   <p>
-    Los proveedores de infraestructura y de correo pueden tratar datos fuera del
+    Los proveedores de infraestructura, de correo y de inteligencia artificial
+    pueden tratar datos fuera del
     Espacio Económico Europeo. Dichas transferencias se amparan en las
     garantías que ofrece cada proveedor, como las cláusulas contractuales tipo
     de la Comisión Europea o el Data Privacy Framework. La verificación
@@ -153,7 +165,10 @@
 
   <h2>8. Uso del contenido</h2>
   <p>
-    El contenido privado de tus conversaciones y memorias no se cede a terceros ni se reutiliza sin tu consentimiento explícito e informado.
+    MAC no vende el contenido privado de tus conversaciones y memorias ni lo
+    reutiliza para otros fines sin tu consentimiento explícito e informado. Solo
+    se envía a los proveedores de inteligencia artificial descritos en la sección
+    5 para generar tus respuestas.
   </p>
 
   <h2>9. Decisiones automatizadas</h2>
@@ -182,8 +197,8 @@
     la sesión se protege mediante Android Keystore o iOS Keychain y no se
     almacena en JavaScript ni en la base de datos local. El tráfico viaja
     cifrado por HTTPS con HSTS y la aplicación aplica una política de
-    seguridad de contenido estricta. Las credenciales de base de datos y del
-    proveedor de IA residen solo en el servidor.
+    seguridad de contenido estricta. Las credenciales de base de datos y de los
+    proveedores de IA residen solo en el servidor.
   </p>
 
   <h2>13. Cambios en esta política</h2>

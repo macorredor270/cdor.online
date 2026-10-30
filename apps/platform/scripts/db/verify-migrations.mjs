@@ -46,7 +46,7 @@ if (sql.includes("message_parts")) {
   throw new Error("message_parts no debe existir en v1");
 }
 if (sql.includes("varchar(36)")) {
-  throw new Error("Persisten IDs VARCHAR(36); CDOR exige ULID CHAR(26)");
+  throw new Error("Persisten IDs VARCHAR(36); MAC exige ULID CHAR(26)");
 }
 if (!sql.includes("datetime(3)")) {
   throw new Error("La migración no conserva DATETIME(3)");

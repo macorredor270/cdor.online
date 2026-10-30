@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs-assets/banner.svg" alt="CDOR: chat con IA sincronizado entre web, Android e iOS." width="100%">
+  <img src="docs-assets/banner.svg" alt="MAC: chat con IA sincronizado entre web, Android e iOS." width="100%">
 </p>
 
 <p align="center">
@@ -10,11 +10,14 @@
 
 ---
 
-CDOR es una plataforma de chat con inteligencia artificial compuesta por una aplicación web
+MAC es una plataforma de chat con inteligencia artificial compuesta por una aplicación web
 (**[cdor.online](https://cdor.online)**), aplicaciones Android e iOS, y una API central que
-sincroniza cuenta, conversaciones, mensajes, memorias y preferencias entre dispositivos. NVIDIA
-NIM actúa como proveedor de inferencia, siempre detrás de la API propia — el modelo nunca se llama
-directamente desde el cliente.
+sincroniza cuenta, conversaciones, mensajes, memorias y preferencias entre dispositivos.
+
+**MAC es gratuito.** Se presenta como un único modelo propio: detrás hay una pasarela que reparte
+las conversaciones entre proveedores de IA gratuitos (NVIDIA, Groq, Gemini, Mistral y los que
+conectes tú, por ejemplo Ollama o vLLM) con respaldo automático si uno falla. Los clientes nunca
+llaman a ningún proveedor ni ven cuál responde. Ver [`docs/ai.md`](./docs/ai.md).
 
 La arquitectura, los límites técnicos y el orden de desarrollo están definidos en
 [`CDOR_PLAN_DEFINITIVO.md`](./CDOR_PLAN_DEFINITIVO.md), la fuente canónica del proyecto.
@@ -71,7 +74,7 @@ pnpm build:mobile
 cargo check --manifest-path apps/mobile/src-tauri/Cargo.toml
 ```
 
-`scripts/env.sh` activa el toolchain de CDOR solo en el shell actual; no cambia los runtimes
+`scripts/env.sh` activa el toolchain de MAC solo en el shell actual; no cambia los runtimes
 globales usados por otros proyectos.
 
 Las variables de entorno necesarias (credenciales de base de datos, proveedor de IA, SMTP, OAuth,

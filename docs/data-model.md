@@ -1,6 +1,6 @@
 # Modelo de datos MySQL
 
-MySQL es la única fuente de verdad de CDOR. El esquema TypeScript vive en
+MySQL es la única fuente de verdad de MAC. El esquema TypeScript vive en
 `apps/platform/src/lib/server/db/schema` y las migraciones SQL revisadas en
 `apps/platform/drizzle`.
 
@@ -17,7 +17,7 @@ Better Auth 1.6.25, generado con su CLI y revisado:
 - `account`
 - `verification`
 
-CDOR:
+MAC:
 
 - `profiles`
 - `devices`
@@ -40,7 +40,7 @@ existan herramientas, adjuntos u otros tipos de parte.
 - Todos los IDs de entidad son ULID `CHAR(26)`.
 - Las fechas son `DATETIME(3)`.
 - `session.device_id` vincula opcionalmente una sesión Better Auth con un
-  dispositivo CDOR. El índice `(user_id, device_id)` permite revocar todas sus
+  dispositivo MAC. El índice `(user_id, device_id)` permite revocar todas sus
   sesiones sin confiar en datos del cliente.
 - Los contadores/cursor usan `BIGINT UNSIGNED`; en el wire format viajan como
   cadenas decimales.

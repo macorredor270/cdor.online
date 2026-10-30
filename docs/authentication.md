@@ -1,6 +1,6 @@
 # Autenticación
 
-CDOR usa Better Auth 1.6.25 sobre MySQL/MariaDB. Los IDs de Better Auth son ULID
+MAC usa Better Auth 1.6.25 sobre MySQL/MariaDB. Los IDs de Better Auth son ULID
 `CHAR(26)` y las sesiones web y móviles comparten la misma autoridad.
 
 ## Variables privadas

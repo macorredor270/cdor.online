@@ -2,7 +2,7 @@
 name = "tauri-plugin-secure-session"
 version = "0.1.0"
 authors = ["CDOR"]
-description = "Android Keystore and iOS Keychain session storage for CDOR"
+description = "Android Keystore and iOS Keychain session storage for MAC"
 edition = "2024"
 rust-version = "1.85"
 links = "tauri-plugin-secure-session"

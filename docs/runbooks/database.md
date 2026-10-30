@@ -2,7 +2,7 @@
 
 ## Desarrollo local
 
-CDOR usa MySQL 8.4.8 en `127.0.0.1:3307` y una matriz de compatibilidad con
+MAC usa MySQL 8.4.8 en `127.0.0.1:3307` y una matriz de compatibilidad con
 MariaDB 11.8.8 en `127.0.0.1:3308`, versión anunciada por Hostinger. El puerto
 3306 no se toca.
 

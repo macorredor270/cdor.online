@@ -139,21 +139,6 @@
       </div>
     </section>
     {/if}
-
-    <section class="note panel">
-      <div>
-        <h2>Coste conocido</h2>
-        <p class="muted">
-          El proveedor actual no informa un coste facturable estable por evento.
-          MAC mantiene el campo preparado sin estimar ni inventar importes.
-        </p>
-      </div>
-      <strong>
-        {summary.knownCostMicrousd === "0"
-          ? "No disponible"
-          : `${summary.knownCostMicrousd} µUSD`}
-      </strong>
-    </section>
   {:catch}
     <!-- Un fallo aquí no rompe la sesión: la cuenta sigue funcionando sin el
          resumen, así que se dice qué falta y cómo reintentar, sin volcar la
@@ -336,34 +321,6 @@
     transition: width var(--motion-slow) var(--easing-out);
   }
 
-  .note {
-    display: flex;
-    margin-top: var(--space-3);
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-8);
-    padding: var(--space-6);
-  }
-
-  .note h2,
-  .note p {
-    margin: 0;
-  }
-
-  .note h2 {
-    font-size: var(--text-lg);
-  }
-
-  .note p {
-    max-width: 38rem;
-    margin-top: var(--space-1);
-    font-size: var(--text-sm);
-  }
-
-  .note strong {
-    flex: 0 0 auto;
-    font-size: var(--text-sm);
-  }
 
   .failed {
     display: flex;
@@ -376,10 +333,5 @@
   }
 
   @media (max-width: 650px) {
-    .note {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: var(--space-3);
-    }
   }
 </style>

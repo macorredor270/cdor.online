@@ -29,5 +29,5 @@ pub fn run() {
             tauri_bridge::chat_cancel,
         ])
         .run(tauri::generate_context!())
-        .expect("error al ejecutar CDOR Mobile");
+        .expect("error al ejecutar MAC Mobile");
 }

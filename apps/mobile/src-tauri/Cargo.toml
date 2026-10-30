@@ -1,7 +1,7 @@
 [package]
 name = "cdor-mobile"
 version = "0.1.0"
-description = "Núcleo nativo de CDOR Mobile"
+description = "Núcleo nativo de MAC Mobile"
 authors = ["CDOR"]
 edition = "2024"
 rust-version = "1.85"

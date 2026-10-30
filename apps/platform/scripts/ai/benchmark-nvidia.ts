@@ -38,7 +38,7 @@ const CASES = [
       {
         role: "user",
         content:
-          "En una frase breve explica qué base es autoridad y cuál es caché en CDOR: MySQL y SQLite."
+          "En una frase breve explica qué base es autoridad y cuál es caché en MAC: MySQL y SQLite."
       }
     ],
     evaluate: (output) => {

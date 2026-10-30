@@ -1,4 +1,4 @@
-# Contrato HTTP de CDOR
+# Contrato HTTP de MAC
 
 Estado: contrato de wire format fijado en M1. Backend, autenticación, chat y
 sincronización están implementados hasta M8; las interfaces visuales se
@@ -85,7 +85,7 @@ incluye su bearer firmado en el cuerpo de `AuthSessionData`: se entrega en la
 cabecera de autenticación y se persistirá únicamente mediante
 Keystore/Keychain.
 
-Las rutas CDOR de dispositivos son:
+Las rutas MAC de dispositivos son:
 
 - `GET /api/v1/auth/devices`
 - `POST /api/v1/auth/devices`
@@ -138,7 +138,7 @@ Los únicos eventos públicos son:
 - `delta`: texto incremental con secuencia monotónica.
 - `usage`: tokens de entrada y salida.
 - `done`: mensaje final persistido y motivo de finalización.
-- `error`: error estable de CDOR, nunca el evento interno de NVIDIA.
+- `error`: error estable de MAC, nunca el evento interno de NVIDIA.
 
 El cuerpo acepta `webSearch: true` para usar el modelo OpenRouter configurado
 para búsqueda. Si ese runtime no está configurado, la generación se rechaza
@@ -180,7 +180,7 @@ Reglas:
 
 ## Catálogo de modelos
 
-`GET /api/v1/models` requiere sesión y devuelve el catálogo propio de CDOR, no
+`GET /api/v1/models` requiere sesión y devuelve el catálogo propio de MAC, no
 lo que publique el proveedor:
 
 ```json
@@ -246,11 +246,11 @@ conflictos ni se convierte en autoridad.
 ## Uso
 
 `GET /api/v1/usage` devuelve el resumen de los últimos 30 días del usuario
-autenticado: generaciones, tokens de entrada, tokens de salida, total y coste
-conocido en microdólares. El cálculo se realiza directamente sobre
-`usage_events` en MySQL y aplica el propietario en la consulta. Si el proveedor
-no informa coste, el servidor conserva `knownCostMicrousd` en cero; la interfaz
-no estima ni inventa un importe.
+autenticado: generaciones, tokens de entrada, tokens de salida y total. El
+cálculo se realiza directamente sobre `usage_events` en MySQL y aplica el
+propietario en la consulta. MAC es gratuito: la interfaz no muestra costes. El
+campo `knownCostMicrousd` se conserva por compatibilidad del contrato y vale
+cero mientras ningún proveedor informe un coste.
 
 La respuesta incluye además `quota`, el estado de las cuotas diarias del
 usuario (ver [Cuotas](./ai.md#cuotas-de-uso)):

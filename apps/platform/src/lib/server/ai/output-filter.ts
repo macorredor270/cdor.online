@@ -1,4 +1,4 @@
-// El prompt lleva andamiaje propio de CDOR: cada memoria viaja como mensaje
+// El prompt lleva andamiaje propio de MAC: cada memoria viaja como mensaje
 // `system` con el prefijo `[Memoria:categoría]` y el resumen con el suyo.
 // Un modelo pequeño copia ese patrón y lo devuelve como si fuese respuesta;
 // con la búsqueda web activa también verbaliza el nombre de la herramienta en

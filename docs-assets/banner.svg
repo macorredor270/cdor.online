@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-labelledby="t d">
-  <title id="t">CDOR</title>
+  <title id="t">MAC</title>
   <desc id="d">Plataforma de chat con IA — web, Android e iOS sincronizados sobre una API propia.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b0a14"/><stop offset="0.55" stop-color="#120f1e"/><stop offset="1" stop-color="#171128"/></linearGradient>
@@ -34,7 +34,7 @@
   <rect x="1015" y="140" width="20" height="32" rx="4" stroke="url(#accent)" stroke-width="1.6" fill="none" opacity="0.6"/>
   <rect x="1015" y="196" width="20" height="34" rx="5" stroke="url(#accent)" stroke-width="1.6" fill="none" opacity="0.6"/>
 
-  <text x="62" y="128" font-family="Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="72" font-weight="800" letter-spacing="-2" fill="#f4f1ff">CDOR</text>
+  <text x="62" y="128" font-family="Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="72" font-weight="800" letter-spacing="-2" fill="#f4f1ff">MAC</text>
   <text x="66" y="168" font-family="Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="22" font-weight="600" fill="#c4b5fd">cdor.online</text>
   <text x="66" y="200" font-family="Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="500" fill="#a99fc4">Chat con IA — web, Android e iOS, siempre en la misma conversación</text>
 

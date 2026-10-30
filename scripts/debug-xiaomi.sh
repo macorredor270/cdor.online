@@ -33,7 +33,7 @@ if [[ -z "$CDOR_MODEL" ]]; then
     "$CDOR_SERIAL" >&2
   exit 1
 fi
-printf 'Dispositivo CDOR: %s (%s) [%s]\n' \
+printf 'Dispositivo MAC: %s (%s) [%s]\n' \
   "$CDOR_MODEL" "$CDOR_DEVICE" "$CDOR_SERIAL"
 
 adb -s "$CDOR_SERIAL" reverse --remove tcp:1420 >/dev/null 2>&1 || true

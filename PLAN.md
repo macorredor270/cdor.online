@@ -1,4 +1,4 @@
-# Plan de CDOR
+# Plan de MAC
 
 La fuente canónica y completa es
 [`CDOR_PLAN_DEFINITIVO.md`](./CDOR_PLAN_DEFINITIVO.md).

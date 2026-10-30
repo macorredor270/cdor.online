@@ -225,8 +225,9 @@ export const ServerEnvironmentSchema = z.object({
   OPENROUTER_DEFAULT_MODEL: OptionalModelIdSchema,
   OPENROUTER_REQUEST_TIMEOUT_MS: NvidiaRequestTimeoutSchema,
   // Mensajes y tokens por usuario y día UTC; tope global de tokens por día.
-  // El global está desactivado por defecto: actívalo al pasar a proveedores de
-  // pago para que un pico no se convierta en una factura sin techo.
+  // Los límites por usuario reparten de forma justa los cupos gratuitos de los
+  // proveedores. El global está desactivado por defecto: actívalo si quieres
+  // que un pico de uso no agote esos cupos para todos.
   QUOTA_USER_DAILY_MESSAGES: quotaLimit(100),
   QUOTA_USER_DAILY_TOKENS: quotaLimit(150_000),
   QUOTA_GLOBAL_DAILY_TOKENS: quotaLimit(0),
