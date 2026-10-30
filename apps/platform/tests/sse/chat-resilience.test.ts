@@ -12,6 +12,7 @@ import type {
   AiChunk,
   AiProvider
 } from "../../src/lib/server/ai/types";
+import { FallbackProvider } from "../../src/lib/server/ai/fallback";
 import { AppError } from "../../src/lib/server/errors/app-error";
 import { ChatStreamService } from "../../src/lib/server/services/chat-stream";
 
@@ -260,5 +261,101 @@ describe("cuotas en el servicio de chat", () => {
       service.prepare(testPrincipal(USER_ID), request)
     ).resolves.toBe(prepared);
     expect(await run(service)).toEqual(["start", "delta", "usage", "done"]);
+  });
+});
+
+describe("respaldo entre proveedores en el servicio de chat", () => {
+  class NamedProvider implements AiProvider {
+    constructor(
+      readonly name: string,
+      private readonly behaviour: "ok" | "rate-limited"
+    ) {}
+
+    async listModels() {
+      return [{ id: "mock/cdor" }];
+    }
+
+    async *streamChat(): AsyncIterable<AiChunk> {
+      if (this.behaviour === "rate-limited") {
+        throw new AppError("RATE_LIMITED", "saturado", {
+          details: { retryAfterMs: 5_000 }
+        });
+      }
+      yield { type: "delta", text: "respuesta del respaldo" };
+      yield { type: "usage", inputTokens: 10, outputTokens: 5 };
+      yield { type: "done", finishReason: "stop" };
+    }
+  }
+
+  it("si el principal está saturado responde el respaldo y se anota quién sirvió", async () => {
+    const repository = repositoryDouble();
+    const quota = quotaDouble();
+    const service = new ChatStreamService(
+      repository as never,
+      new FallbackProvider([
+        { provider: new NamedProvider("nvidia", "rate-limited") },
+        { provider: new NamedProvider("openrouter", "ok"), model: "openrouter/free" }
+      ]),
+      model,
+      undefined,
+      quota as never
+    );
+
+    const events = await run(service);
+    expect(events).toEqual(["start", "delta", "usage", "done"]);
+    expect(repository.complete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: "respuesta del respaldo",
+        served: { provider: "openrouter", modelId: "openrouter/free" }
+      })
+    );
+    // El usuario no paga cuota por el fallo del proveedor principal.
+    expect(quota.recordTokens).toHaveBeenCalledWith(USER_ID, 15);
+    expect(quota.refundMessageAt).not.toHaveBeenCalled();
+  });
+
+  it("si todos los proveedores fallan, el usuario ve el error y no gasta cuota", async () => {
+    const repository = repositoryDouble();
+    const quota = quotaDouble();
+    const service = new ChatStreamService(
+      repository as never,
+      new FallbackProvider([
+        { provider: new NamedProvider("nvidia", "rate-limited") },
+        { provider: new NamedProvider("openrouter", "rate-limited") }
+      ]),
+      model,
+      undefined,
+      quota as never
+    );
+
+    const errors: string[] = [];
+    await service.generate(
+      testPrincipal(USER_ID),
+      prepared,
+      new AbortController().signal,
+      REQUEST_ID,
+      {
+        isClosed: () => false,
+        emit: (event) => {
+          if (event.event === "error") errors.push(event.data.code);
+        }
+      }
+    );
+    expect(errors).toEqual(["RATE_LIMITED"]);
+    expect(quota.refundMessageAt).toHaveBeenCalledWith(USER_ID, CREATED);
+    expect(repository.complete).not.toHaveBeenCalled();
+  });
+
+  it("sin respaldo, un servicio no registra ruta", async () => {
+    const repository = repositoryDouble();
+    const service = new ChatStreamService(
+      repository as never,
+      new MockAiProvider({ response: "Hola" }),
+      model
+    );
+    await run(service);
+    expect(repository.complete).toHaveBeenCalledWith(
+      expect.objectContaining({ served: undefined })
+    );
   });
 });

@@ -110,6 +110,23 @@ function providerError(error: unknown, context: RequestContext): AppError {
   );
 }
 
+/**
+ * Interpreta `Retry-After` (segundos o fecha HTTP) en milisegundos, acotado a
+ * un rango razonable. Sin cabecera o ilegible: `null`.
+ */
+export function parseRetryAfter(
+  headers: Headers,
+  now: number = Date.now()
+): number | null {
+  const raw = headers.get("retry-after")?.trim();
+  if (!raw) return null;
+  const seconds = /^\d+$/.test(raw) ? Number(raw) : null;
+  const milliseconds =
+    seconds !== null ? seconds * 1_000 : Date.parse(raw) - now;
+  if (!Number.isFinite(milliseconds)) return null;
+  return Math.min(Math.max(milliseconds, 1_000), 5 * 60 * 1_000);
+}
+
 function normalizeFinishReason(value: string | null | undefined) {
   if (value === "length") {
     return "length" as const;
@@ -210,6 +227,13 @@ export class NvidiaNimProvider implements AiProvider {
         }
       );
 
+      if (response.status === 429) {
+        throw new AppError(
+          "RATE_LIMITED",
+          "El proveedor de IA está saturado. Inténtalo de nuevo en unos segundos.",
+          { details: { retryAfterMs: parseRetryAfter(response.headers) } }
+        );
+      }
       if (!response.ok || response.body === null) {
         throw new AppError(
           response.status === 400 || response.status === 404

@@ -19,6 +19,12 @@ export type AiChatRequest = Readonly<{
 
 export type AiChunk =
   | Readonly<{ type: "delta"; text: string }>
+  /**
+   * Quién está generando realmente la respuesta. Solo lo emite el respaldo
+   * entre proveedores, justo antes del primer fragmento de texto, para que el
+   * uso se anote contra el proveedor que lo sirvió y no contra el principal.
+   */
+  | Readonly<{ type: "route"; provider: string; model: string }>
   | Readonly<{
       type: "usage";
       inputTokens: number;

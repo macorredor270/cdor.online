@@ -3,10 +3,13 @@ import {
   NVIDIA_MODEL_CANDIDATES,
   type AllowedModel
 } from "../ai/model-router";
+import { FallbackProvider } from "../ai/fallback";
 import {
   getAiEnvironment,
+  getFallbackEnvironment,
   getOptionalOpenRouterEnvironment
 } from "../config";
+import { logProviderFailover } from "../observability/provider-log";
 import { getDatabaseClient } from "../db/client";
 import { GenerationRepository } from "../db/repositories/generations";
 import { AppError } from "../errors/app-error";
@@ -29,6 +32,25 @@ let searchRuntime:
   | null
   | undefined;
 
+/**
+ * Respaldo opcional: si NVIDIA falla antes de dar texto, la petición pasa al
+ * router gratuito de OpenRouter. Desactivado por defecto porque los modelos
+ * gratuitos pueden registrar los prompts; se activa con AI_FALLBACK_OPENROUTER
+ * y requiere OPENROUTER_API_KEY.
+ */
+function withFallback(primary: AiProvider): AiProvider {
+  if (!getFallbackEnvironment().AI_FALLBACK_OPENROUTER) return primary;
+  const openRouter = getOptionalOpenRouterEnvironment();
+  if (!openRouter) return primary;
+  return new FallbackProvider(
+    [
+      { provider: primary },
+      { provider: createOpenRouterProvider(openRouter), model: "openrouter/free" }
+    ],
+    { onFailover: logProviderFailover }
+  );
+}
+
 function getAiRuntime() {
   if (!runtime) {
     const environment = getAiEnvironment();
@@ -42,7 +64,7 @@ function getAiRuntime() {
       );
     }
     runtime = Object.freeze({
-      provider: createNvidiaProvider(environment),
+      provider: withFallback(createNvidiaProvider(environment)),
       model
     });
   }

@@ -14,7 +14,7 @@
     "build": "vite build",
     "start": "node build",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc --project tsconfig.scripts.json --noEmit",
-    "test": "svelte-kit sync && vitest run tests/validation tests/ai/model-catalog.test.ts tests/ai/output-filter.test.ts tests/backend/http.test.ts tests/backend/security.test.ts tests/backend/account.test.ts tests/sse/chat-stream.test.ts",
+    "test": "svelte-kit sync && vitest run tests/validation tests/ai/model-catalog.test.ts tests/ai/output-filter.test.ts tests/ai/fallback.test.ts tests/backend/http.test.ts tests/backend/security.test.ts tests/backend/account.test.ts tests/sse/chat-stream.test.ts tests/sse/chat-resilience.test.ts",
     "test:security": "svelte-kit sync && vitest run tests/backend/security.test.ts tests/validation/server-environment.test.ts",
     "test:validation": "svelte-kit sync && vitest run tests/validation",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",

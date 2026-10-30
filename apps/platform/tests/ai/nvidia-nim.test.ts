@@ -115,6 +115,37 @@ describe("NvidiaNimProvider", () => {
     }
   });
 
+  it("distingue un 429 del resto de fallos y conserva Retry-After", async () => {
+    const provider = new NvidiaNimProvider({
+      apiKey: "nvapi-test-private-key",
+      baseUrl: "https://nvidia.invalid/v1",
+      requestTimeoutMs: 5_000,
+      fetch: vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+        new Response("rate limited", {
+          status: 429,
+          headers: { "retry-after": "7" }
+        })
+      )
+    });
+    const consume = async () => {
+      for await (const _chunk of provider.streamChat(
+        {
+          model: "meta/model-a",
+          messages: [{ role: "user", content: "Hola" }],
+          maxOutputTokens: 32
+        },
+        new AbortController().signal
+      )) {
+        // Consumir todo el stream.
+      }
+    };
+    await expect(consume()).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+      status: 429,
+      details: { retryAfterMs: 7_000 }
+    });
+  });
+
   it("rechaza fragmentos inválidos del proveedor", async () => {
     const provider = new NvidiaNimProvider({
       apiKey: "nvapi-test-private-key",

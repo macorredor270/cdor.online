@@ -363,6 +363,7 @@ export class ChatStreamService {
     let inputTokens: number | undefined;
     let outputTokens: number | undefined;
     let finishReason: "stop" | "length" = "stop";
+    let served: { provider: string; modelId: string } | undefined;
     let sequence = 0;
     let lastSnapshotAt = performance.now();
     let lastSnapshotBytes = 0;
@@ -479,6 +480,8 @@ export class ChatStreamService {
         } else if (chunk.type === "usage") {
           inputTokens = chunk.inputTokens;
           outputTokens = chunk.outputTokens;
+        } else if (chunk.type === "route") {
+          served = { provider: chunk.provider, modelId: chunk.model };
         } else {
           finishReason = chunk.finishReason === "length" ? "length" : "stop";
         }
@@ -505,6 +508,7 @@ export class ChatStreamService {
         latencyFirstTokenMs:
           firstTokenAt === null ? null : Math.round(firstTokenAt - startedAt),
         latencyTotalMs: Math.round(performance.now() - startedAt),
+        served,
         now: new Date()
       });
       // Un fallo al anotar la cuota nunca debe convertir en error una

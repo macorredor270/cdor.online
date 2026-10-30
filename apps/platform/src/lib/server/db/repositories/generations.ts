@@ -678,6 +678,11 @@ export class GenerationRepository {
     finishReason: FinishReason;
     latencyFirstTokenMs: number | null;
     latencyTotalMs: number;
+    /**
+     * Proveedor y modelo que sirvieron la respuesta cuando no son los que se
+     * previeron al preparar (respaldo automático entre proveedores).
+     */
+    served?: Readonly<{ provider: string; modelId: string }>;
     now: Date;
   }): Promise<GenerationMessageRow> {
     return this.database.transaction(async (transaction) => {
@@ -708,11 +713,15 @@ export class GenerationRepository {
         return current;
       }
 
+      const servedProvider = input.served?.provider ?? generation.provider;
+      const servedModelId = input.served?.modelId ?? generation.modelId;
       const nextVersion = current.syncVersion + 1n;
       await transaction
         .update(messages)
         .set({
           content: input.content,
+          modelProvider: servedProvider,
+          modelId: servedModelId,
           status: "completed",
           inputTokens: input.inputTokens,
           outputTokens: input.outputTokens,
@@ -726,6 +735,8 @@ export class GenerationRepository {
         .update(generationRequests)
         .set({
           state: "completed",
+          provider: servedProvider,
+          modelId: servedModelId,
           completedAt: input.now,
           latencyFirstTokenMs: input.latencyFirstTokenMs,
           latencyTotalMs: input.latencyTotalMs,
@@ -747,8 +758,8 @@ export class GenerationRepository {
         userId: input.userId,
         generationId: input.generationId,
         kind: "chat",
-        provider: generation.provider,
-        modelId: generation.modelId,
+        provider: servedProvider,
+        modelId: servedModelId,
         inputTokens: input.inputTokens,
         outputTokens: input.outputTokens,
         createdAt: input.now
