@@ -61,6 +61,7 @@
     </section>
 
     {@const share = outputShare(summary.inputTokens, summary.outputTokens)}
+    {#if summary.inputTokens + summary.outputTokens > 0}
     <section class="split panel" aria-label="Reparto entre entrada y salida">
       <div class="split-head">
         <span>Entrada</span>
@@ -78,6 +79,7 @@
         <span>{share}%</span>
       </div>
     </section>
+    {/if}
 
     <section class="note panel">
       <div>

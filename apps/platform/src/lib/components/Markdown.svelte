@@ -132,7 +132,7 @@
   .markdown :global(td code),
   .markdown :global(blockquote code) {
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-xs);
     background: var(--surface-2);
     padding: 0.06rem 0.32rem;
     font-size: 0.9em;

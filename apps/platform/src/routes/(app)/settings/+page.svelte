@@ -143,7 +143,7 @@
   }
 
   .swatch i {
-    border-radius: 4px;
+    border-radius: calc(var(--radius-xs) - 2px);
   }
 
   .swatch i:first-child {

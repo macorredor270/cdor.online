@@ -252,7 +252,7 @@
     height: 1.75rem;
     place-items: center;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--radius-xs);
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;

@@ -307,7 +307,7 @@
     flex: 0 0 auto;
     place-items: center;
     border: 0;
-    border-radius: 0.78rem;
+    border-radius: var(--radius-control);
     background: var(--accent-button);
     color: var(--on-accent);
     cursor: pointer;

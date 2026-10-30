@@ -265,12 +265,12 @@
   }
 
   header h1 {
-    font-size: 0.95rem;
+    font-size: var(--text-sm);
   }
 
   header small {
     color: var(--muted);
-    font-size: 0.62rem;
+    font-size: var(--text-xs);
   }
 
   .icon {
@@ -279,14 +279,14 @@
     height: 2.5rem;
     place-items: center;
     border: 0;
-    border-radius: 0.75rem;
+    border-radius: var(--radius-control);
     background: var(--surface-2);
     color: var(--text);
   }
 
   .new {
     color: var(--accent-light);
-    font-size: 1.3rem;
+    font-size: var(--text-xl);
   }
 
   .messages {
@@ -310,7 +310,7 @@
     display: flex;
     gap: 0.5rem;
     margin-bottom: 0.32rem;
-    font-size: 0.72rem;
+    font-size: var(--text-xs);
   }
 
   article small {
@@ -329,11 +329,11 @@
     min-height: 2.1rem;
     padding: 0.3rem 0.8rem;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: transparent;
     color: var(--muted);
     font: inherit;
-    font-size: 0.78rem;
+    font-size: var(--text-xs);
   }
 
   article.user {
@@ -373,7 +373,7 @@
   .empty button {
     margin-top: 1rem;
     border: 0;
-    border-radius: 0.8rem;
+    border-radius: var(--radius-control);
     background: var(--accent-button);
     padding: 0.7rem 0.9rem;
     color: white;
@@ -414,11 +414,11 @@
     align-items: center;
     gap: 0.5rem;
     border: 1px solid color-mix(in srgb, var(--warning) 48%, var(--border));
-    border-radius: 0.8rem;
+    border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--warning) 10%, var(--surface));
     padding: 0.6rem 0.7rem;
     color: var(--muted);
-    font-size: 0.72rem;
+    font-size: var(--text-xs);
     line-height: 1.35;
   }
 
@@ -451,7 +451,7 @@
     align-items: end;
     gap: 0.45rem;
     border: 1px solid var(--border-strong);
-    border-radius: 1rem;
+    border-radius: var(--radius-card);
     background: var(--surface);
     padding: 0.5rem;
   }
@@ -472,7 +472,7 @@
     height: 2.55rem;
     place-items: center;
     border: 0;
-    border-radius: 0.78rem;
+    border-radius: var(--radius-control);
     background: var(--accent-button);
     color: white;
     font-weight: 900;
@@ -497,12 +497,12 @@
     align-items: center;
     gap: 0.35rem;
     border: 1px solid var(--border);
-    border-radius: 0.78rem;
+    border-radius: var(--radius-control);
     background: transparent;
     padding: 0 0.7rem;
     color: var(--muted);
     font: inherit;
-    font-size: 0.78rem;
+    font-size: var(--text-xs);
   }
 
   .search-toggle svg {
@@ -523,7 +523,7 @@
 
   .stop {
     background: var(--danger);
-    font-size: 0.72rem;
+    font-size: var(--text-xs);
   }
 
   .send:disabled {
@@ -563,7 +563,7 @@
     border: 0;
     background: transparent;
     color: var(--muted);
-    font-size: 1.5rem;
+    font-size: var(--text-xl);
   }
 
   .new-chat {
@@ -571,7 +571,7 @@
     min-height: 2.8rem;
     margin: 0.7rem 0;
     border: 1px solid var(--border-strong);
-    border-radius: 0.8rem;
+    border-radius: var(--radius-control);
     background: var(--surface-2);
     color: var(--text);
     font-weight: 750;
@@ -588,7 +588,7 @@
     display: grid;
     gap: 0.12rem;
     border: 0;
-    border-radius: 0.7rem;
+    border-radius: var(--radius-control);
     background: transparent;
     padding: 0.7rem;
     color: var(--text);
