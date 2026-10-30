@@ -1,7 +1,9 @@
 import {
   parseFallbackEnvironment,
+  parseGatewayEnvironment,
   parseQuotaEnvironment,
   type FallbackEnvironment,
+  type GatewayEnvironment,
   type QuotaEnvironment,
   parseAuthEnvironment,
   parseAiEnvironment,
@@ -27,6 +29,7 @@ let cachedAuthEnvironment: AuthEnvironment | undefined;
 let cachedAiEnvironment: AiEnvironment | undefined;
 let cachedOpenRouterEnvironment: OpenRouterEnvironment | undefined;
 let optionalOpenRouterEnvironment: OpenRouterEnvironment | null | undefined;
+let cachedGatewayEnvironment: GatewayEnvironment | undefined;
 let cachedQuotaEnvironment: QuotaEnvironment | undefined;
 let cachedFallbackEnvironment: FallbackEnvironment | undefined;
 let cachedStreamCanaryEnvironment: StreamCanaryEnvironment | undefined;
@@ -74,7 +77,13 @@ export function getSocialAuthAvailability() {
 }
 
 export function isWebSearchEnabled(): boolean {
-  return Boolean(env.OPENROUTER_API_KEY);
+  // La búsqueda usa una herramienta de pago de OpenRouter: solo con opt-in.
+  return Boolean(env.OPENROUTER_API_KEY) && env.AI_WEB_SEARCH === "true";
+}
+
+export function getGatewayEnvironment(): GatewayEnvironment {
+  cachedGatewayEnvironment ??= parseGatewayEnvironment(env);
+  return cachedGatewayEnvironment;
 }
 
 export function getQuotaEnvironment(): QuotaEnvironment {

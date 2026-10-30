@@ -8,7 +8,11 @@ import {
   lte,
   or
 } from "drizzle-orm";
-import type { ErrorCode, FinishReason } from "@cdor/contracts";
+import {
+  PUBLIC_MODEL,
+  type ErrorCode,
+  type FinishReason
+} from "@cdor/contracts";
 import type { Database } from "../client";
 import {
   conversations,
@@ -183,8 +187,10 @@ export class GenerationRepository {
           role: "assistant",
           content: "",
           status: "streaming",
-          modelProvider: input.provider,
-          modelId: input.modelId,
+          // Los clientes ven siempre el modelo público; el proveedor real queda en
+          // generation_requests y usage_events.
+          modelProvider: PUBLIC_MODEL.provider,
+          modelId: PUBLIC_MODEL.id,
           createdAt: input.now,
           updatedAt: input.now,
           syncVersion: 1n
@@ -438,8 +444,10 @@ export class GenerationRepository {
         role: "assistant",
         content: "",
         status: "streaming",
-        modelProvider: input.provider,
-        modelId: input.modelId,
+        // Los clientes ven siempre el modelo público; el proveedor real queda en
+        // generation_requests y usage_events.
+        modelProvider: PUBLIC_MODEL.provider,
+        modelId: PUBLIC_MODEL.id,
         createdAt: input.now,
         updatedAt: input.now,
         syncVersion: 1n
@@ -720,8 +728,6 @@ export class GenerationRepository {
         .update(messages)
         .set({
           content: input.content,
-          modelProvider: servedProvider,
-          modelId: servedModelId,
           status: "completed",
           inputTokens: input.inputTokens,
           outputTokens: input.outputTokens,

@@ -414,3 +414,210 @@ describe("Retry-After", () => {
     expect(parseRetryAfter(headers("  "))).toBeNull();
   });
 });
+
+/** PRNG determinista (mulberry32) para probar el reparto sin flakiness. */
+function seeded(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+describe("FallbackProvider como pasarela", () => {
+  it("se presenta con el nombre indicado y no con el del principal", () => {
+    const provider = new FallbackProvider([{ provider: ok("nvidia") }], {
+      name: "mac"
+    });
+    expect(provider.name).toBe("mac");
+  });
+
+  it("agotado el cupo por minuto, las peticiones pasan al siguiente sin llamar al principal", async () => {
+    const time = clock();
+    const primary = ok("nvidia");
+    const backup = ok("groq");
+    const provider = new FallbackProvider(
+      [{ provider: primary, rpm: 2 }, { provider: backup }],
+      { now: time.now }
+    );
+
+    await collect(provider);
+    await collect(provider);
+    expect(primary.calls).toHaveLength(2);
+
+    await collect(provider);
+    expect(primary.calls).toHaveLength(2);
+    expect(backup.calls).toHaveLength(1);
+
+    // El cupo se recupera al deslizar la ventana de un minuto.
+    time.advance(61_000);
+    await collect(provider);
+    expect(primary.calls).toHaveLength(3);
+  });
+
+  it("si todos están sin cupo los prueba igualmente, en orden", async () => {
+    const time = clock();
+    const primary = ok("nvidia");
+    const backup = ok("groq");
+    const provider = new FallbackProvider(
+      [
+        { provider: primary, rpm: 1 },
+        { provider: backup, rpm: 1 }
+      ],
+      { now: time.now }
+    );
+    await collect(provider);
+    await collect(provider);
+    // Ambos agotados: la tercera petición no se rechaza, va al principal.
+    const chunks = await collect(provider);
+    expect(chunks.some((chunk) => chunk.type === "delta")).toBe(true);
+    expect(primary.calls).toHaveLength(2);
+  });
+
+  it("descarta antes de llamar a los despliegues con ventana de contexto insuficiente", async () => {
+    const small = ok("github");
+    const large = ok("groq");
+    const provider = new FallbackProvider([
+      { provider: small, contextTokens: 100 },
+      { provider: large, contextTokens: 100_000 }
+    ]);
+    // El prompt más la salida reservada (64) no cabe en 100 tokens.
+    const long: AiChatRequest = {
+      ...request,
+      messages: [{ role: "user", content: "palabra ".repeat(200) }]
+    };
+    const chunks: AiChunk[] = [];
+    for await (const chunk of provider.streamChat(long, new AbortController().signal)) {
+      chunks.push(chunk);
+    }
+    expect(small.calls).toHaveLength(0);
+    expect(large.calls).toHaveLength(1);
+    expect(chunks[0]).toMatchObject({ type: "route", provider: "groq" });
+  });
+
+  it("si ninguno tiene contexto suficiente los prueba igualmente", async () => {
+    const only = ok("github");
+    const provider = new FallbackProvider([{ provider: only, contextTokens: 10 }]);
+    await collect(provider);
+    expect(only.calls).toHaveLength(1);
+  });
+
+  it("el reparto ponderado favorece al de más peso sin excluir a los demás", async () => {
+    const heavy = ok("nvidia");
+    const light = ok("groq");
+    const provider = new FallbackProvider(
+      [
+        { provider: light, weight: 1 },
+        { provider: heavy, weight: 9 }
+      ],
+      { strategy: "weighted", random: seeded(42) }
+    );
+    for (let index = 0; index < 400; index += 1) await collect(provider);
+    const total = heavy.calls.length + light.calls.length;
+    expect(total).toBe(400);
+    expect(heavy.calls.length / total).toBeGreaterThan(0.84);
+    expect(heavy.calls.length / total).toBeLessThan(0.96);
+    expect(light.calls.length).toBeGreaterThan(0);
+  });
+
+  it("sin peso explícito usa el cupo por minuto como peso", async () => {
+    const big = ok("nvidia");
+    const small = ok("groq");
+    const provider = new FallbackProvider(
+      [
+        { provider: small, rpm: 10_000 },
+        { provider: big, rpm: 90_000 }
+      ],
+      { strategy: "weighted", random: seeded(7) }
+    );
+    for (let index = 0; index < 300; index += 1) await collect(provider);
+    expect(big.calls.length).toBeGreaterThan(small.calls.length * 5);
+  });
+
+  it("el reparto ponderado sigue teniendo respaldo ordenado si el elegido falla", async () => {
+    const provider = new FallbackProvider(
+      [
+        { provider: failing("nvidia", "AI_PROVIDER_ERROR"), weight: 1_000_000 },
+        { provider: ok("groq"), weight: 1 }
+      ],
+      { strategy: "weighted", random: seeded(1) }
+    );
+    const chunks = await collect(provider);
+    expect(chunks[0]).toMatchObject({ type: "route", provider: "groq" });
+  });
+
+  it("descubre el modelo con el proveedor y lo anuncia en la ruta", async () => {
+    const provider1 = ok("groq");
+    const resolve = vi.fn(async (_signal: AbortSignal) => "discovered-model");
+    const provider = new FallbackProvider([
+      { provider: provider1, model: { resolve } }
+    ]);
+    const chunks = await collect(provider);
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(resolve.mock.calls[0]?.[0]).toBeInstanceOf(AbortSignal);
+    expect(provider1.calls[0].model).toBe("discovered-model");
+    expect(chunks[0]).toEqual({
+      type: "route",
+      provider: "groq",
+      model: "discovered-model"
+    });
+  });
+
+  it("si no se puede descubrir el modelo pasa al siguiente despliegue", async () => {
+    const backup = ok("mistral");
+    const provider = new FallbackProvider([
+      {
+        provider: ok("groq"),
+        model: {
+          resolve: async () => {
+            throw new AppError("MODEL_UNAVAILABLE", "sin modelo");
+          }
+        }
+      },
+      { provider: backup }
+    ]);
+    const chunks = await collect(provider);
+    expect(chunks[0]).toMatchObject({ provider: "mistral" });
+  });
+
+  it("si el proveedor rechaza el modelo, se invalida para volver a descubrirlo", async () => {
+    const invalidate = vi.fn();
+    const provider = new FallbackProvider([
+      {
+        provider: failing("groq", "MODEL_UNAVAILABLE"),
+        model: { resolve: async () => "retired-model", invalidate }
+      },
+      { provider: ok("mistral") }
+    ]);
+    await collect(provider);
+    expect(invalidate).toHaveBeenCalledTimes(1);
+  });
+
+  it("la búsqueda del modelo cuenta contra el tiempo máximo del primer texto", async () => {
+    const backup = ok("mistral");
+    const provider = new FallbackProvider(
+      [
+        {
+          provider: ok("groq"),
+          model: {
+            resolve: (signal) =>
+              new Promise<string>((_, reject) =>
+                signal.addEventListener(
+                  "abort",
+                  () => reject(new AppError("STREAM_CANCELLED", "cancelado")),
+                  { once: true }
+                )
+              )
+          }
+        },
+        { provider: backup }
+      ],
+      { firstTokenTimeoutMs: 20 }
+    );
+    const chunks = await collect(provider);
+    expect(chunks[0]).toMatchObject({ provider: "mistral" });
+  });
+});

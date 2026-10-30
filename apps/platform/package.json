@@ -36,6 +36,7 @@
     "benchmark:nvidia": "node --import tsx scripts/ai/benchmark-nvidia.ts",
     "smoke:nvidia": "node --import tsx scripts/ai/smoke-nvidia.ts",
     "smoke:openrouter": "node --import tsx scripts/ai/smoke-openrouter.ts",
+    "smoke:providers": "node --import tsx scripts/ai/smoke-providers.ts",
     "maintenance:generations": "node --import tsx scripts/stream/reconcile-generations.ts",
     "maintenance:sync": "node --import tsx scripts/sync/maintenance.ts",
     "smoke:stream:hostinger": "node --import tsx scripts/stream/smoke-hostinger.ts",

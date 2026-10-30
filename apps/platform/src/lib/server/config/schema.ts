@@ -1,5 +1,6 @@
 import { EmailSchema } from "@cdor/contracts";
 import { z } from "zod";
+import { BUILT_IN_PROVIDER_IDS } from "../ai/gateway/registry";
 
 export const SERVER_SECRET_ENV_NAMES = Object.freeze([
   "DB_HOST",
@@ -29,6 +30,20 @@ export const SERVER_SECRET_ENV_NAMES = Object.freeze([
   "QUOTA_USER_DAILY_TOKENS",
   "QUOTA_GLOBAL_DAILY_TOKENS",
   "AI_FALLBACK_OPENROUTER",
+  "NVIDIA_RPM",
+  "GROQ_API_KEY",
+  "GROQ_DEFAULT_MODEL",
+  "GROQ_RPM",
+  "GEMINI_API_KEY",
+  "GEMINI_DEFAULT_MODEL",
+  "GEMINI_RPM",
+  "MISTRAL_API_KEY",
+  "MISTRAL_DEFAULT_MODEL",
+  "MISTRAL_RPM",
+  "AI_ROUTING",
+  "AI_PROVIDER_ORDER",
+  "AI_CUSTOM_PROVIDERS",
+  "AI_WEB_SEARCH",
   "GITHUB_CLIENT_ID",
   "GITHUB_CLIENT_SECRET",
   "GOOGLE_CLIENT_ID",
@@ -79,6 +94,69 @@ function quotaLimit(defaultValue: number) {
   );
 }
 
+const emptyAsUndefined = (value: unknown) => (value === "" ? undefined : value);
+
+const OptionalRpmSchema = z.preprocess(
+  emptyAsUndefined,
+  z
+    .string()
+    .regex(/^[1-9]\d{0,5}$/)
+    .transform(Number)
+    .pipe(z.number().int().min(1).max(100_000))
+    .optional()
+);
+
+const ProviderIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,23}$/);
+
+/**
+ * Proveedor propio con API compatible con OpenAI (Ollama, vLLM, LM Studio,
+ * Cloudflare Workers AI, Together, un servidor tuyo…). La clave es opcional
+ * porque los servidores locales no la usan.
+ */
+export const CustomProviderSchema = z
+  .object({
+    id: ProviderIdSchema,
+    baseUrl: z.url(),
+    apiKey: z.string().min(1).max(512).optional(),
+    model: z.string().trim().min(1).max(160),
+    rpm: z.number().int().min(1).max(100_000).optional(),
+    weight: z.number().positive().max(1_000).optional(),
+    contextTokens: z.number().int().min(2_048).max(2_000_000).optional()
+  })
+  .strict();
+
+export type CustomProviderConfiguration = z.infer<typeof CustomProviderSchema>;
+
+const CustomProvidersSchema = z.preprocess(
+  emptyAsUndefined,
+  z
+    .string()
+    .transform((raw, context) => {
+      try {
+        return JSON.parse(raw) as unknown;
+      } catch {
+        context.addIssue({ code: "custom", message: "JSON no válido" });
+        return z.NEVER;
+      }
+    })
+    .pipe(z.array(CustomProviderSchema).max(8))
+    .optional()
+);
+
+const ProviderOrderSchema = z.preprocess(
+  emptyAsUndefined,
+  z
+    .string()
+    .transform((raw) =>
+      raw
+        .split(",")
+        .map((id) => id.trim().toLowerCase())
+        .filter(Boolean)
+    )
+    .pipe(z.array(ProviderIdSchema).max(16))
+    .optional()
+);
+
 const OptionalModelIdSchema = z.preprocess(
   (value) => (value === "" ? undefined : value),
   z.string().trim().min(1).max(160).optional()
@@ -127,8 +205,16 @@ export const ServerEnvironmentSchema = z.object({
   SMTP_USER: z.string().trim().min(1).max(320),
   SMTP_PASSWORD: z.string().min(8).max(512),
   SMTP_FROM: EmailSchema,
-  NVIDIA_API_KEY: z.string().min(20).max(512),
-  NVIDIA_BASE_URL: z.url(),
+  // NVIDIA es un proveedor más: la app arranca con cualquiera de los que haya.
+  NVIDIA_API_KEY: z.preprocess(
+    emptyAsUndefined,
+    z.string().min(20).max(512).optional()
+  ),
+  NVIDIA_BASE_URL: z.preprocess(
+    emptyAsUndefined,
+    z.url().default("https://integrate.api.nvidia.com/v1")
+  ),
+  NVIDIA_RPM: OptionalRpmSchema,
   NVIDIA_DEFAULT_MODEL: OptionalModelIdSchema,
   NVIDIA_REQUEST_TIMEOUT_MS: NvidiaRequestTimeoutSchema,
   OPENROUTER_API_KEY: z.preprocess(
@@ -148,6 +234,30 @@ export const ServerEnvironmentSchema = z.object({
   // por defecto: los modelos gratuitos pueden registrar los prompts.
   AI_FALLBACK_OPENROUTER: z.preprocess(
     (value) => (value === "" ? undefined : value),
+    BooleanStringSchema.default(false)
+  ),
+  // Proveedores gratuitos adicionales (ver ai/gateway/registry.ts). Cada uno se
+  // activa al definir su clave.
+  GROQ_API_KEY: OptionalSecretSchema,
+  GROQ_DEFAULT_MODEL: OptionalModelIdSchema,
+  GROQ_RPM: OptionalRpmSchema,
+  GEMINI_API_KEY: OptionalSecretSchema,
+  GEMINI_DEFAULT_MODEL: OptionalModelIdSchema,
+  GEMINI_RPM: OptionalRpmSchema,
+  MISTRAL_API_KEY: OptionalSecretSchema,
+  MISTRAL_DEFAULT_MODEL: OptionalModelIdSchema,
+  MISTRAL_RPM: OptionalRpmSchema,
+  // Enrutado: `ordered` usa el primero disponible y los demás de respaldo;
+  // `weighted` reparte la carga según el cupo de cada proveedor.
+  AI_ROUTING: z.preprocess(
+    emptyAsUndefined,
+    z.enum(["ordered", "weighted"]).default("ordered")
+  ),
+  AI_PROVIDER_ORDER: ProviderOrderSchema,
+  AI_CUSTOM_PROVIDERS: CustomProvidersSchema,
+  // La búsqueda web usa la herramienta de pago de OpenRouter: opt-in.
+  AI_WEB_SEARCH: z.preprocess(
+    emptyAsUndefined,
     BooleanStringSchema.default(false)
   ),
   GITHUB_CLIENT_ID: OptionalClientIdSchema,
@@ -185,11 +295,40 @@ export const AuthEnvironmentSchema = ServerEnvironmentSchema.pick({
   GOOGLE_CLIENT_SECRET: true
 });
 
+// Configuración exclusiva de NVIDIA para los scripts de smoke y benchmark, que
+// sí necesitan la clave.
 export const AiEnvironmentSchema = ServerEnvironmentSchema.pick({
   NVIDIA_API_KEY: true,
   NVIDIA_BASE_URL: true,
   NVIDIA_DEFAULT_MODEL: true,
   NVIDIA_REQUEST_TIMEOUT_MS: true
+}).required({ NVIDIA_API_KEY: true });
+
+/** Todo lo que necesita la pasarela de IA para montar sus despliegues. */
+export const GatewayEnvironmentSchema = ServerEnvironmentSchema.pick({
+  NVIDIA_API_KEY: true,
+  NVIDIA_BASE_URL: true,
+  NVIDIA_DEFAULT_MODEL: true,
+  NVIDIA_REQUEST_TIMEOUT_MS: true,
+  NVIDIA_RPM: true,
+  OPENROUTER_API_KEY: true,
+  OPENROUTER_BASE_URL: true,
+  OPENROUTER_DEFAULT_MODEL: true,
+  OPENROUTER_REQUEST_TIMEOUT_MS: true,
+  GROQ_API_KEY: true,
+  GROQ_DEFAULT_MODEL: true,
+  GROQ_RPM: true,
+  GEMINI_API_KEY: true,
+  GEMINI_DEFAULT_MODEL: true,
+  GEMINI_RPM: true,
+  MISTRAL_API_KEY: true,
+  MISTRAL_DEFAULT_MODEL: true,
+  MISTRAL_RPM: true,
+  AI_ROUTING: true,
+  AI_PROVIDER_ORDER: true,
+  AI_CUSTOM_PROVIDERS: true,
+  AI_FALLBACK_OPENROUTER: true,
+  AI_WEB_SEARCH: true
 });
 
 export const QuotaEnvironmentSchema = ServerEnvironmentSchema.pick({
@@ -226,6 +365,9 @@ export type QuotaEnvironment = Readonly<
 >;
 export type FallbackEnvironment = Readonly<
   z.output<typeof FallbackEnvironmentSchema>
+>;
+export type GatewayEnvironment = Readonly<
+  z.output<typeof GatewayEnvironmentSchema>
 >;
 export type OpenRouterEnvironment = Readonly<
   z.output<typeof OpenRouterEnvironmentSchema>
@@ -324,6 +466,40 @@ export function parseAiEnvironment(
       result.error.issues.map((issue) => String(issue.path[0] ?? "unknown"))
     );
   }
+  return Object.freeze(result.data);
+}
+
+export function parseGatewayEnvironment(
+  source: Readonly<Record<string, string | undefined>>
+): GatewayEnvironment {
+  const publicSecretNames = findPublicSecretNames(source);
+  if (publicSecretNames.length > 0) {
+    throw new ServerEnvironmentError(publicSecretNames);
+  }
+
+  const result = GatewayEnvironmentSchema.safeParse(source);
+  if (!result.success) {
+    throw new ServerEnvironmentError(
+      result.error.issues.map((issue) => String(issue.path[0] ?? "unknown"))
+    );
+  }
+
+  // Validaciones entre variables. Solo se nombra la variable, nunca su valor.
+  const failing: string[] = [];
+  const custom = result.data.AI_CUSTOM_PROVIDERS ?? [];
+  const customIds = custom.map(({ id }) => id);
+  if (
+    new Set(customIds).size !== customIds.length ||
+    customIds.some((id) => (BUILT_IN_PROVIDER_IDS as readonly string[]).includes(id))
+  ) {
+    failing.push("AI_CUSTOM_PROVIDERS");
+  }
+  const known = new Set<string>([...BUILT_IN_PROVIDER_IDS, ...customIds]);
+  if ((result.data.AI_PROVIDER_ORDER ?? []).some((id) => !known.has(id))) {
+    failing.push("AI_PROVIDER_ORDER");
+  }
+  if (failing.length > 0) throw new ServerEnvironmentError(failing);
+
   return Object.freeze(result.data);
 }
 

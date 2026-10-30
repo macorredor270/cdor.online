@@ -40,6 +40,7 @@
     "benchmark:nvidia": "pnpm --dir apps/platform benchmark:nvidia",
     "smoke:nvidia": "pnpm --dir apps/platform smoke:nvidia",
     "smoke:openrouter": "pnpm --dir apps/platform smoke:openrouter",
+    "smoke:providers": "pnpm --dir apps/platform smoke:providers",
     "maintenance:generations": "pnpm --dir apps/platform maintenance:generations",
     "maintenance:sync": "pnpm --dir apps/platform maintenance:sync",
     "smoke:stream:hostinger": "pnpm --dir apps/platform smoke:stream:hostinger",

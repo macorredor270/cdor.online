@@ -4,6 +4,18 @@ import { ModelModeSchema } from "./conversation";
 
 export const MODEL_CATALOG_MAX_ENTRIES = 32;
 
+/**
+ * Identidad pública del modelo. MAC se presenta como un único modelo propio:
+ * los mensajes, el catálogo y la sincronización llevan siempre estos valores.
+ * El proveedor y el modelo reales que sirven cada respuesta solo se anotan en
+ * las tablas operativas (`generation_requests`, `usage_events`), nunca en lo
+ * que ven los clientes.
+ */
+export const PUBLIC_MODEL = Object.freeze({
+  provider: "mac",
+  id: "mac"
+} as const);
+
 // El proveedor puede dejar de publicar un modelo o quedar inalcanzable. El
 // catálogo distingue las tres situaciones en vez de mentir con un booleano.
 export const ModelAvailabilitySchema = z.enum([

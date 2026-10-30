@@ -1,15 +1,40 @@
 import type { ErrorCode } from "@cdor/contracts";
 import { AppError } from "../errors/app-error";
+import { RateWindow } from "./gateway/limiter";
+import { estimateMessagesTokens } from "./token-budget";
 import type { AiChatRequest, AiChunk, AiModel, AiProvider } from "./types";
 
-/** Un proveedor de la cadena, con el modelo que debe pedírsele. */
+/**
+ * Modelo que se pide a un proveedor cuando no es fijo: se descubre en su
+ * catálogo. `invalidate` se llama si el proveedor dice que ya no lo tiene, para
+ * que el siguiente intento vuelva a descubrirlo.
+ */
+export type ModelSource = Readonly<{
+  resolve: (signal: AbortSignal) => Promise<string>;
+  invalidate?: () => void;
+}>;
+
+/** Un despliegue de la cadena: un proveedor con el modelo que se le pide. */
 export type FallbackEntry = Readonly<{
   provider: AiProvider;
   /** Modelo para este proveedor; sin él se usa el de la petición. */
-  model?: string;
+  model?: string | ModelSource;
+  /** Peticiones por minuto que admite. Sin valor, sin límite propio. */
+  rpm?: number;
+  /** Peso en el reparto `weighted`. Por defecto `rpm`, o 1 si tampoco hay. */
+  weight?: number;
+  /** Ventana de contexto en tokens. Por defecto, la admite todo. */
+  contextTokens?: number;
 }>;
 
 export type FallbackOptions = Readonly<{
+  /** Nombre con el que se presenta. Por defecto, el del primer proveedor. */
+  name?: string;
+  /**
+   * `ordered`: se usa el primero disponible y los demás son respaldo.
+   * `weighted`: se reparte la carga al azar según el peso de cada despliegue.
+   */
+  strategy?: "ordered" | "weighted";
   /**
    * Tiempo máximo hasta el primer texto de un proveedor antes de pasar al
    * siguiente. Sin él, un proveedor colgado haría esperar hasta su propio
@@ -19,6 +44,7 @@ export type FallbackOptions = Readonly<{
   /** Cuánto se aparta a un proveedor que falla, si no dice cuánto. */
   cooldownMs?: number;
   now?: () => number;
+  random?: () => number;
   /** Aviso de cada cambio de proveedor. Nunca recibe contenido del chat. */
   onFailover?: (event: FailoverEvent) => void;
 }>;
@@ -64,29 +90,38 @@ function retryAfterMs(error: AppError): number | null {
 }
 
 /**
- * Cadena de proveedores con respaldo automático.
+ * Cadena de proveedores con respaldo automático y reparto de carga, a partir
+ * de las ideas del Router de LiteLLM: un grupo de despliegues tras un único
+ * nombre, límite de peticiones por despliegue, enfriamiento individual,
+ * descarte previo por ventana de contexto y respaldo ante errores.
  *
- * Prueba los proveedores en orden y pasa al siguiente si uno falla **antes de
- * entregar texto**. Una vez emitido el primer fragmento no se cambia: la
- * respuesta empezada con un modelo no puede continuarla otro sin duplicar o
- * contradecir lo ya mostrado, así que el error se propaga.
+ * Prueba los despliegues y pasa al siguiente si uno falla **antes de entregar
+ * texto**. Una vez emitido el primer fragmento no se cambia: la respuesta
+ * empezada con un modelo no puede continuarla otro sin duplicar o contradecir
+ * lo ya mostrado, así que el error se propaga.
  *
- * Un proveedor que falla queda apartado un tiempo (el `Retry-After` que
- * indique, o el predeterminado): las siguientes peticiones van directas al
- * respaldo en lugar de esperar otro fallo. Si todos están apartados se prueban
- * igualmente, en orden: nunca se rechaza una petición sin intentarla.
+ * Un despliegue que falla queda apartado un tiempo (el `Retry-After` que
+ * indique, o el predeterminado): las siguientes peticiones van directas a los
+ * demás en lugar de esperar otro fallo. Si todos están apartados, sin cupo o
+ * sin contexto suficiente se prueban igualmente, en orden: nunca se rechaza una
+ * petición sin intentarla.
  *
- * Se presenta con el nombre del principal para no alterar lo que ya se
- * registra; el proveedor que realmente sirvió se anuncia con un fragmento
- * `route`.
+ * El estado (cupos y enfriamientos) vive en memoria del proceso. Sin Redis, con
+ * varias instancias cada una llevaría su cuenta; el 429 real del proveedor
+ * sigue siendo la red de seguridad.
+ *
+ * El proveedor que realmente sirvió se anuncia con un fragmento `route`.
  */
 export class FallbackProvider implements AiProvider {
   readonly name: string;
   readonly #entries: readonly FallbackEntry[];
-  readonly #unavailableUntil = new Map<AiProvider, number>();
+  readonly #windows = new Map<FallbackEntry, RateWindow>();
+  readonly #unavailableUntil = new Map<FallbackEntry, number>();
+  readonly #strategy: "ordered" | "weighted";
   readonly #firstTokenTimeoutMs: number;
   readonly #cooldownMs: number;
   readonly #now: () => number;
+  readonly #random: () => number;
   readonly #onFailover: (event: FailoverEvent) => void;
 
   constructor(
@@ -97,12 +132,17 @@ export class FallbackProvider implements AiProvider {
     if (!primary) {
       throw new Error("FallbackProvider necesita al menos un proveedor");
     }
-    this.name = primary.provider.name;
+    this.name = options.name ?? primary.provider.name;
     this.#entries = entries;
+    for (const entry of entries) {
+      this.#windows.set(entry, new RateWindow(entry.rpm));
+    }
+    this.#strategy = options.strategy ?? "ordered";
     this.#firstTokenTimeoutMs =
       options.firstTokenTimeoutMs ?? DEFAULT_FIRST_TOKEN_TIMEOUT_MS;
     this.#cooldownMs = options.cooldownMs ?? DEFAULT_COOLDOWN_MS;
     this.#now = options.now ?? Date.now;
+    this.#random = options.random ?? Math.random;
     this.#onFailover = options.onFailover ?? (() => undefined);
   }
 
@@ -115,14 +155,15 @@ export class FallbackProvider implements AiProvider {
     request: AiChatRequest,
     signal: AbortSignal
   ): AsyncIterable<AiChunk> {
-    const attempts = this.#order();
+    const attempts = this.#order(request);
     let firstError: AppError | null = null;
 
     for (const [position, entry] of attempts.entries()) {
       const next = attempts[position + 1];
+      this.#windows.get(entry)?.record(this.#now());
       try {
         yield* this.#attempt(entry, request, signal);
-        this.#unavailableUntil.delete(entry.provider);
+        this.#unavailableUntil.delete(entry);
         return;
       } catch (error) {
         if (error instanceof CommittedError) throw error.cause;
@@ -134,7 +175,13 @@ export class FallbackProvider implements AiProvider {
           throw error;
         }
         firstError ??= error;
-        this.#penalize(entry.provider, error);
+        if (error.code === "MODEL_UNAVAILABLE") {
+          // Puede que el proveedor haya retirado el modelo: que se vuelva a
+          // descubrir en el siguiente intento.
+          const source = modelSource(entry);
+          source?.invalidate?.();
+        }
+        this.#penalize(entry, error);
         this.#onFailover({
           from: entry.provider.name,
           to: next?.provider.name ?? null,
@@ -148,19 +195,46 @@ export class FallbackProvider implements AiProvider {
     );
   }
 
-  /** Primero los disponibles; si no queda ninguno, todos en su orden. */
-  #order(): readonly FallbackEntry[] {
+  /**
+   * Despliegues utilizables, en el orden en que se probarán: sin enfriamiento,
+   * con cupo y con ventana de contexto suficiente. Si no queda ninguno se
+   * prueban todos, en su orden.
+   */
+  #order(request: AiChatRequest): readonly FallbackEntry[] {
     const now = this.#now();
-    const available = this.#entries.filter(
-      ({ provider }) => (this.#unavailableUntil.get(provider) ?? 0) <= now
+    const needed =
+      estimateMessagesTokens(request.messages) + request.maxOutputTokens;
+    const usable = this.#entries.filter(
+      (entry) =>
+        (this.#unavailableUntil.get(entry) ?? 0) <= now &&
+        (this.#windows.get(entry)?.hasCapacity(now) ?? true) &&
+        (entry.contextTokens === undefined || entry.contextTokens >= needed)
     );
-    return available.length > 0 ? available : this.#entries;
+    if (usable.length === 0) return this.#entries;
+    return this.#strategy === "weighted" ? this.#shuffle(usable) : usable;
   }
 
-  #penalize(provider: AiProvider, error: AppError): void {
+  /**
+   * Orden aleatorio ponderado sin repetición (Efraimidis–Spirakis): cada
+   * despliegue recibe una clave `u^(1/peso)` y se ordena de mayor a menor, de
+   * modo que el de más peso sale primero con más frecuencia, pero los demás
+   * siguen disponibles como respaldo.
+   */
+  #shuffle(entries: readonly FallbackEntry[]): readonly FallbackEntry[] {
+    return entries
+      .map((entry) => {
+        const weight = Math.max(entry.weight ?? entry.rpm ?? 1, 1e-6);
+        // `1 - random()` evita u = 0, para el que la clave sería 0 siempre.
+        return { entry, key: Math.pow(1 - this.#random(), 1 / weight) };
+      })
+      .sort((left, right) => right.key - left.key)
+      .map(({ entry }) => entry);
+  }
+
+  #penalize(entry: FallbackEntry, error: AppError): void {
     if (!COOLDOWN_CODES.has(error.code)) return;
     this.#unavailableUntil.set(
-      provider,
+      entry,
       this.#now() + (retryAfterMs(error) ?? this.#cooldownMs)
     );
   }
@@ -186,8 +260,10 @@ export class FallbackProvider implements AiProvider {
     };
 
     let committed = false;
-    const model = entry.model ?? request.model;
     try {
+      // Descubrir el modelo también cuenta contra el tiempo máximo: es una
+      // petición de red más al mismo proveedor.
+      const model = await this.#modelFor(entry, request, controller.signal);
       for await (const chunk of entry.provider.streamChat(
         { ...request, model },
         controller.signal
@@ -216,6 +292,23 @@ export class FallbackProvider implements AiProvider {
       callerSignal.removeEventListener("abort", abortFromCaller);
     }
   }
+
+  async #modelFor(
+    entry: FallbackEntry,
+    request: AiChatRequest,
+    signal: AbortSignal
+  ): Promise<string> {
+    const { model } = entry;
+    if (model === undefined) return request.model;
+    if (typeof model === "string") return model;
+    return model.resolve(signal);
+  }
+}
+
+function modelSource(entry: FallbackEntry): ModelSource | null {
+  return entry.model !== undefined && typeof entry.model !== "string"
+    ? entry.model
+    : null;
 }
 
 /** Marca un error ocurrido tras entregar texto, que no admite respaldo. */

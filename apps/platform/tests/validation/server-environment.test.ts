@@ -1,5 +1,8 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  parseGatewayEnvironment,
   parseFallbackEnvironment,
   parseQuotaEnvironment,
   parseAiEnvironment,
@@ -7,8 +10,10 @@ import {
   parseOpenRouterEnvironment,
   parseStreamCanaryEnvironment,
   ServerEnvironmentError,
-  parseServerEnvironment
+  parseServerEnvironment,
+  SERVER_SECRET_ENV_NAMES
 } from "../../src/lib/server/config/schema";
+import { registryEnvNames } from "../../src/lib/server/ai/gateway/registry";
 
 const validEnvironment = {
   NODE_ENV: "test",
@@ -205,5 +210,190 @@ describe("configuración privada del servidor", () => {
         DATABASE_URL: ""
       }).DATABASE_URL
     ).toBeUndefined();
+  });
+});
+
+describe("configuración de la pasarela de IA", () => {
+  it("NVIDIA ya no es obligatoria: la aplicación arranca con cualquier proveedor", () => {
+    const { NVIDIA_API_KEY: _ignored, NVIDIA_BASE_URL: _ignoredUrl, ...withoutNvidia } =
+      validEnvironment;
+    const parsed = parseServerEnvironment({
+      ...withoutNvidia,
+      GROQ_API_KEY: "gsk-test-key"
+    });
+    expect(parsed.NVIDIA_API_KEY).toBeUndefined();
+    expect(parsed.NVIDIA_BASE_URL).toBe("https://integrate.api.nvidia.com/v1");
+    expect(parsed.GROQ_API_KEY).toBe("gsk-test-key");
+  });
+
+  it("los scripts de NVIDIA siguen exigiendo la clave", () => {
+    expect(() => parseAiEnvironment({})).toThrow(ServerEnvironmentError);
+  });
+
+  it("valores por defecto: enrutado ordenado, búsqueda web apagada, sin proveedores", () => {
+    const parsed = parseGatewayEnvironment({});
+    expect(parsed.AI_ROUTING).toBe("ordered");
+    expect(parsed.AI_WEB_SEARCH).toBe(false);
+    expect(parsed.AI_FALLBACK_OPENROUTER).toBe(false);
+    expect(parsed.AI_PROVIDER_ORDER).toBeUndefined();
+    expect(parsed.AI_CUSTOM_PROVIDERS).toBeUndefined();
+    expect(parsed.GROQ_API_KEY).toBeUndefined();
+  });
+
+  it("trata las variables vacías del panel de hosting como ausentes", () => {
+    const parsed = parseGatewayEnvironment({
+      GROQ_API_KEY: "",
+      GROQ_RPM: "",
+      GROQ_DEFAULT_MODEL: "",
+      AI_ROUTING: "",
+      AI_WEB_SEARCH: "",
+      AI_PROVIDER_ORDER: "",
+      AI_CUSTOM_PROVIDERS: "",
+      NVIDIA_API_KEY: ""
+    });
+    expect(parsed.GROQ_API_KEY).toBeUndefined();
+    expect(parsed.GROQ_RPM).toBeUndefined();
+    expect(parsed.AI_ROUTING).toBe("ordered");
+    expect(parsed.NVIDIA_API_KEY).toBeUndefined();
+  });
+
+  it("acepta el enrutado ponderado y rechaza otros", () => {
+    expect(parseGatewayEnvironment({ AI_ROUTING: "weighted" }).AI_ROUTING).toBe(
+      "weighted"
+    );
+    expect(() => parseGatewayEnvironment({ AI_ROUTING: "random" })).toThrow(
+      ServerEnvironmentError
+    );
+  });
+
+  it("valida el cupo por minuto", () => {
+    expect(parseGatewayEnvironment({ GROQ_RPM: "30" }).GROQ_RPM).toBe(30);
+    for (const value of ["0", "-1", "1.5", "muchas", "999999999"]) {
+      expect(() => parseGatewayEnvironment({ GROQ_RPM: value })).toThrow(
+        ServerEnvironmentError
+      );
+    }
+  });
+
+  it("normaliza AI_PROVIDER_ORDER y rechaza ids desconocidos", () => {
+    expect(
+      parseGatewayEnvironment({ AI_PROVIDER_ORDER: " Groq , nvidia " })
+        .AI_PROVIDER_ORDER
+    ).toEqual(["groq", "nvidia"]);
+    expect(() =>
+      parseGatewayEnvironment({ AI_PROVIDER_ORDER: "groq,inventado" })
+    ).toThrow(ServerEnvironmentError);
+  });
+
+  it("AI_PROVIDER_ORDER puede nombrar un proveedor propio declarado", () => {
+    const custom = JSON.stringify([
+      { id: "mi-vllm", baseUrl: "http://127.0.0.1:8000/v1", model: "m" }
+    ]);
+    expect(
+      parseGatewayEnvironment({
+        AI_CUSTOM_PROVIDERS: custom,
+        AI_PROVIDER_ORDER: "mi-vllm,groq"
+      }).AI_PROVIDER_ORDER
+    ).toEqual(["mi-vllm", "groq"]);
+  });
+
+  it("valida los proveedores propios", () => {
+    const valid = {
+      id: "mi-vllm",
+      baseUrl: "http://127.0.0.1:8000/v1",
+      model: "qwen-72b"
+    };
+    const parse = (value: unknown) =>
+      parseGatewayEnvironment({ AI_CUSTOM_PROVIDERS: JSON.stringify(value) });
+
+    expect(parse([valid]).AI_CUSTOM_PROVIDERS).toEqual([valid]);
+    expect(() => parse([{ ...valid, id: "Mi VLLM" }])).toThrow(ServerEnvironmentError);
+    expect(() => parse([{ ...valid, baseUrl: "no-es-una-url" }])).toThrow(
+      ServerEnvironmentError
+    );
+    expect(() => parse([{ ...valid, model: "" }])).toThrow(ServerEnvironmentError);
+    expect(() => parse([{ ...valid, rpm: 0 }])).toThrow(ServerEnvironmentError);
+    expect(() => parse([{ ...valid, extra: true }])).toThrow(ServerEnvironmentError);
+    expect(() => parse("no es una lista")).toThrow(ServerEnvironmentError);
+    expect(() => parse(Array.from({ length: 9 }, (_, i) => ({ ...valid, id: `p${i}` })))).toThrow(
+      ServerEnvironmentError
+    );
+  });
+
+  it("rechaza ids propios repetidos o que choquen con un proveedor conocido", () => {
+    const base = { baseUrl: "http://127.0.0.1:8000/v1", model: "m" };
+    const parse = (ids: string[]) =>
+      parseGatewayEnvironment({
+        AI_CUSTOM_PROVIDERS: JSON.stringify(ids.map((id) => ({ ...base, id })))
+      });
+    expect(() => parse(["a", "a"])).toThrow(ServerEnvironmentError);
+    expect(() => parse(["groq"])).toThrow(ServerEnvironmentError);
+    expect(() => parse(["nvidia"])).toThrow(ServerEnvironmentError);
+    expect(parse(["a", "b"]).AI_CUSTOM_PROVIDERS).toHaveLength(2);
+  });
+
+  it("un JSON roto o inválido no filtra su contenido en el error", () => {
+    const secret = "sk-secreto-que-no-debe-salir";
+    for (const value of [
+      `[{"id":"x","apiKey":"${secret}", este no es json`,
+      JSON.stringify([{ id: "X X", apiKey: secret, baseUrl: "no-url", model: "m" }])
+    ]) {
+      try {
+        parseGatewayEnvironment({ AI_CUSTOM_PROVIDERS: value });
+        expect.unreachable("debía fallar");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ServerEnvironmentError);
+        expect(String(error)).toContain("AI_CUSTOM_PROVIDERS");
+        expect(String(error)).not.toContain(secret);
+      }
+    }
+  });
+
+  it("las variables de la pasarela no admiten prefijo PUBLIC_", () => {
+    for (const name of [
+      "PUBLIC_GROQ_API_KEY",
+      "PUBLIC_GEMINI_API_KEY",
+      "PUBLIC_AI_CUSTOM_PROVIDERS",
+      "PUBLIC_NVIDIA_RPM"
+    ]) {
+      expect(() => parseGatewayEnvironment({ [name]: "x" })).toThrow(
+        ServerEnvironmentError
+      );
+    }
+  });
+
+  it("toda variable del registro consta en la lista de variables privadas", () => {
+    const registered = new Set<string>(SERVER_SECRET_ENV_NAMES);
+    for (const name of registryEnvNames()) {
+      expect(registered.has(name), `${name} falta en SERVER_SECRET_ENV_NAMES`).toBe(true);
+    }
+    for (const name of [
+      "NVIDIA_RPM",
+      "AI_ROUTING",
+      "AI_PROVIDER_ORDER",
+      "AI_CUSTOM_PROVIDERS",
+      "AI_WEB_SEARCH",
+      "AI_FALLBACK_OPENROUTER"
+    ]) {
+      expect(registered.has(name), `${name} falta en SERVER_SECRET_ENV_NAMES`).toBe(true);
+    }
+  });
+
+  it("el escáner de secretos del cliente vigila las mismas variables", async () => {
+    // Se lee como texto: es un módulo .mjs fuera del proyecto TypeScript.
+    const source = await readFile(
+      resolve(import.meta.dirname, "../../../../scripts/scan-client-secrets.mjs"),
+      "utf8"
+    );
+    const block = /SENSITIVE_SERVER_NAMES = Object\.freeze\(\[([\s\S]*?)\]\)/.exec(
+      source
+    );
+    expect(block, "no se encontró SENSITIVE_SERVER_NAMES").not.toBeNull();
+    const watched = new Set([...block![1].matchAll(/"([A-Z0-9_]+)"/g)].map((m) => m[1]));
+    // Las variables de OAuth se vigilan por su valor en otra parte del escáner.
+    const missing = SERVER_SECRET_ENV_NAMES.filter(
+      (name) => !watched.has(name) && !/^(GITHUB|GOOGLE)_CLIENT_/.test(name)
+    );
+    expect(missing).toEqual([]);
   });
 });
