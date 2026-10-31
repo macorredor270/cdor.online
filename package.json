@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "pnpm dev:local",
     "dev:local": "bash scripts/dev-local.sh",
+    "dev:fake": "bash scripts/dev-fake.sh",
     "dev:platform": "pnpm --dir apps/platform dev",
     "build:platform": "pnpm --dir apps/platform build",
     "start:platform": "pnpm --dir apps/platform start",

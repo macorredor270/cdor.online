@@ -15,6 +15,14 @@ if [[ -f .env ]]; then
   set +a
 fi
 
+# `pnpm dev:fake` pide usar solo el proveedor de IA falso, aunque el .env tenga
+# claves reales.
+if [[ -n "${CDOR_FAKE_AI_PORT:-}" ]]; then
+  export NVIDIA_API_KEY="" GROQ_API_KEY="" GEMINI_API_KEY="" MISTRAL_API_KEY="" OPENROUTER_API_KEY=""
+  export AI_CUSTOM_PROVIDERS="[{\"id\":\"fake\",\"baseUrl\":\"http://127.0.0.1:${CDOR_FAKE_AI_PORT}/v1\",\"model\":\"fake-model\"}]"
+  export AI_WEB_SEARCH=false
+fi
+
 ./scripts/db/local-up.sh mysql
 
 export DB_HOST=127.0.0.1
