@@ -1,4 +1,3 @@
-import { json } from "@sveltejs/kit";
 import {
   ApiErrorSchema,
   normalizeValidationIssues,
@@ -13,7 +12,7 @@ export function apiSuccess(
   requestId: string,
   init: ResponseInit = {}
 ): Response {
-  return json(
+  return Response.json(
     {
       data,
       meta: { requestId }
@@ -35,14 +34,14 @@ function errorBody(
 
 export function apiError(error: unknown, requestId: string): Response {
   if (error instanceof AppError || error instanceof HttpInputError) {
-    return json(
+    return Response.json(
       errorBody(error.code, error.message, requestId, error.details),
       { status: error.status }
     );
   }
 
   if (error instanceof z.ZodError) {
-    return json(
+    return Response.json(
       errorBody(
         "VALIDATION_ERROR",
         "La solicitud no cumple el contrato",
@@ -53,7 +52,7 @@ export function apiError(error: unknown, requestId: string): Response {
     );
   }
 
-  return json(
+  return Response.json(
     errorBody(
       "INTERNAL_ERROR",
       "No se pudo completar la solicitud",

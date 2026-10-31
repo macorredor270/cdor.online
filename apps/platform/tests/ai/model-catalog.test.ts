@@ -20,7 +20,7 @@ function providerDouble(
 }
 
 describe("catálogo de modelos servido", () => {
-  it("publica solo los modos propios de CDOR", async () => {
+  it("publica solo los modos propios de MAC", async () => {
     const provider = providerDouble(
       vi.fn().mockResolvedValue([{ id: MODEL.id }, { id: "otro/modelo" }])
     );

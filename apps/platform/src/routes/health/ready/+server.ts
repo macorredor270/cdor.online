@@ -1,4 +1,4 @@
-import { readinessResponse } from "$lib/server/http/health";
+import { readinessResponse } from "#lib/server/http/health.js";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = ({ locals }) =>

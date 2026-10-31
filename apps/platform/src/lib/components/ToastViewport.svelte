@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { toasts } from "$lib/client/toast.svelte";
+  import { toasts } from "#lib/client/toast.svelte.js";
 
   /**
    * Región de avisos. Se monta una sola vez por layout.

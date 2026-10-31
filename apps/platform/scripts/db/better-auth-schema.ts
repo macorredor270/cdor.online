@@ -13,10 +13,10 @@ const pool = mysql.createPool({
 
 const database = drizzle({ client: pool });
 
-// Este archivo reproduce el esquema base oficial. Los campos propios de CDOR,
+// Este archivo reproduce el esquema base oficial. Los campos propios de MAC,
 // como session.device_id, se revisan en el esquema Drizzle y sus migraciones.
 export const auth = betterAuth({
-  appName: "CDOR schema generator",
+  appName: "MAC schema generator",
   baseURL: "http://localhost:5173",
   secret: "cdor-schema-generator-only-not-a-runtime-secret",
   database: drizzleAdapter(database, {

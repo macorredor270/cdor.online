@@ -14,9 +14,9 @@ export type ModelModeDefinition = Readonly<{
 export const MODEL_MODES: readonly ModelModeDefinition[] = Object.freeze([
   Object.freeze({
     mode: DEFAULT_MODEL_MODE,
-    displayName: "Equilibrado",
+    displayName: "MAC",
     description:
-      "Modo único de la versión 1. Equilibra calidad, latencia y coste con el modelo validado por el benchmark de MAC."
+      "El modelo de MAC. Reparte las conversaciones entre varios proveedores de IA gratuitos y sigue respondiendo aunque uno falle."
   })
 ]);
 

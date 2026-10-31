@@ -17,6 +17,10 @@ describe("hardening HTTP", () => {
     expect(SECURITY_POLICY).toContain("frame-ancestors 'none'");
     expect(SECURITY_POLICY).toContain("https://avatars.githubusercontent.com");
     expect(SECURITY_POLICY).toContain("https://*.googleusercontent.com");
+    // Los medios externos solo por https; nunca http, blob ni data en media.
+    expect(SECURITY_POLICY).toContain("media-src 'self' https:");
+    expect(SECURITY_POLICY).not.toMatch(/media-src[^;]*(http:|blob:|data:)/);
+    expect(SECURITY_POLICY).toContain("object-src 'none'");
   });
 
   it("no añade HSTS en desarrollo", () => {

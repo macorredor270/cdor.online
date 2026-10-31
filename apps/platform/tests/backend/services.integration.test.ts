@@ -4,6 +4,7 @@ import { testPrincipal } from "../../src/lib/server/auth/principal";
 import { createDatabaseClient } from "../../src/lib/server/db/client";
 import { ConversationRepository } from "../../src/lib/server/db/repositories/conversations";
 import { MemoryRepository } from "../../src/lib/server/db/repositories/memories";
+import { QuotaRepository } from "../../src/lib/server/db/repositories/quota";
 import { UsageRepository } from "../../src/lib/server/db/repositories/usage";
 import {
   conversations,
@@ -13,6 +14,7 @@ import {
 } from "../../src/lib/server/db/schema";
 import { ConversationService } from "../../src/lib/server/services/conversations";
 import { MemoryService } from "../../src/lib/server/services/memories";
+import { QuotaService } from "../../src/lib/server/services/quota";
 import { UsageService } from "../../src/lib/server/services/usage";
 import {
   applyMigrations,
@@ -231,9 +233,15 @@ describe.sequential("servicios backend con MySQL", () => {
         createdAt: new Date("2026-07-28T12:00:00.000Z")
       }
     ]);
+    const clock = () => new Date("2026-07-29T12:00:00.000Z");
     const summary = await new UsageService(
       new UsageRepository(client.database),
-      () => new Date("2026-07-29T12:00:00.000Z")
+      new QuotaService(
+        new QuotaRepository(client.database),
+        { userMessagesPerDay: 100, userTokensPerDay: 0, globalTokensPerDay: 0 },
+        clock
+      ),
+      clock
     ).summarize(testPrincipal(USER_A));
 
     expect(summary).toEqual({
@@ -243,7 +251,12 @@ describe.sequential("servicios backend con MySQL", () => {
       inputTokens: 100,
       outputTokens: 50,
       totalTokens: 150,
-      knownCostMicrousd: "25"
+      knownCostMicrousd: "25",
+      quota: {
+        resetsAt: "2026-07-30T00:00:00.000Z",
+        messages: { used: 0, limit: 100 },
+        tokens: { used: 0, limit: null }
+      }
     });
   });
 

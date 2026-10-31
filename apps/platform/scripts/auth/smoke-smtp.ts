@@ -59,9 +59,9 @@ const mail = new SmtpMailTransport({
 await mail.verify();
 await mail.send({
   to: target.data,
-  subject: "CDOR — prueba de autenticación",
-  text: "El transporte SMTP de CDOR funciona. Este mensaje no habilita el registro público.",
-  html: "<p>El transporte SMTP de CDOR funciona.</p><p>Este mensaje no habilita el registro público.</p>"
+  subject: "MAC — prueba de autenticación",
+  text: "El transporte SMTP de MAC funciona. Este mensaje no habilita el registro público.",
+  html: "<p>El transporte SMTP de MAC funciona.</p><p>Este mensaje no habilita el registro público.</p>"
 });
 
 const [localPart, domain] = target.data.split("@");

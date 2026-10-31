@@ -12,7 +12,7 @@ Las rutas nunca consultan tablas directamente. Los repositorios reciben siempre
 ## Principal
 
 `hooks.server.ts` asigna un ULID de request y parte de `principal = null`.
-Desde M5, una cookie CDOR o un bearer firmado válidos se resuelven mediante
+Desde M5, una cookie MAC o un bearer firmado válidos se resuelven mediante
 Better Auth y se traducen a la abstracción `Principal`. Una credencial ausente,
 inválida o revocada mantiene `principal = null`; los filtros de ownership de
 repositorios y servicios no cambian.

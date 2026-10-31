@@ -71,7 +71,7 @@ if (
   ["localhost", "127.0.0.1", "::1"].includes(environment.DB_HOST) ||
   new URL(targetOrigin).hostname !== "cdor.online"
 ) {
-  throw new Error("La canary real solo admite la producción explícita de CDOR");
+  throw new Error("La canary real solo admite la producción explícita de MAC");
 }
 
 const databaseUrl = new URL("mysql://placeholder/");

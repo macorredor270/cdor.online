@@ -2,13 +2,10 @@ import {
   CreateMemoryRequestSchema,
   MemoryListQuerySchema
 } from "@cdor/contracts";
-import { getServices } from "$lib/server/services";
-import { requirePrincipal } from "$lib/server/http/principal";
-import {
-  apiHandler,
-  apiSuccess
-} from "$lib/server/http/response";
-import { parseJsonRequest } from "$lib/server/http/payload";
+import { getServices } from "#lib/server/services/index.js";
+import { requirePrincipal } from "#lib/server/http/principal.js";
+import { apiHandler, apiSuccess } from "#lib/server/http/response.js";
+import { parseJsonRequest } from "#lib/server/http/payload.js";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = ({ locals, url }) =>

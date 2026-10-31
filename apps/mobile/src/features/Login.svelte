@@ -249,7 +249,7 @@
     width: 2.25rem;
     height: 2.25rem;
     object-fit: contain;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-sm);
   }
 
   section {
@@ -260,7 +260,7 @@
   .eyebrow {
     margin: 0;
     color: var(--accent-light);
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -289,14 +289,14 @@
   label {
     display: grid;
     gap: 0.38rem;
-    font-size: 0.8rem;
+    font-size: var(--text-xs);
     font-weight: 750;
   }
 
   input {
     min-height: 3.15rem;
     border: 1px solid var(--border);
-    border-radius: 0.85rem;
+    border-radius: var(--radius-control);
     background: var(--surface);
     padding: 0.75rem 0.85rem;
     color: var(--text);
@@ -306,7 +306,7 @@
     min-height: 3.15rem;
     margin-top: 0.3rem;
     border: 0;
-    border-radius: 0.85rem;
+    border-radius: var(--radius-control);
     background: var(--accent-button);
     color: white;
     font-weight: 800;
@@ -367,7 +367,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     color: var(--muted);
   }
 

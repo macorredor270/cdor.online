@@ -1,4 +1,7 @@
-import { getSocialAuthAvailability, isSignUpEnabled } from "$lib/server/config";
+import {
+  getSocialAuthAvailability,
+  isSignUpEnabled
+} from "#lib/server/config/index.js";
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 

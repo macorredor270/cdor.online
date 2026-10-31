@@ -11,13 +11,22 @@
  *
  * Motor: el de expresiones regulares de JavaScript, no Oniguruma, para no
  * arrastrar el WASM.
+ *
+ * Cada token trae los colores de los dos temas: el CSS elige según
+ * `data-theme`, así que cambiar de tema no obliga a volver a tokenizar y el
+ * resultado no depende de cuándo se aplicó el tema en la página.
  */
 
-export type HighlightToken = Readonly<{
-  content: string;
+type TokenStyle = Readonly<{
   color?: string;
   /** Bitmask de Shiki: 1 itálica, 2 negrita, 4 subrayado. */
   fontStyle?: number;
+}>;
+
+export type HighlightToken = Readonly<{
+  content: string;
+  dark: TokenStyle;
+  light: TokenStyle;
 }>;
 
 export type HighlightLine = readonly HighlightToken[];
@@ -68,10 +77,12 @@ export function resolveLanguage(raw: string): keyof typeof LANGUAGES | null {
 }
 
 type Highlighter = {
-  codeToTokens: (
+  codeToTokensWithThemes: (
     code: string,
-    options: { lang: string; theme: string }
-  ) => { tokens: HighlightToken[][] };
+    options: { lang: string; themes: Record<string, string> }
+  ) => Array<
+    Array<{ content: string; variants: Record<string, TokenStyle> }>
+  >;
   getLoadedLanguages: () => string[];
   loadLanguage: (lang: unknown) => Promise<void>;
 };
@@ -103,8 +114,7 @@ async function getHighlighter(): Promise<Highlighter> {
  */
 export async function highlight(
   code: string,
-  language: string,
-  theme: "dark" | "light"
+  language: string
 ): Promise<HighlightLine[] | null> {
   const lang = resolveLanguage(language);
   if (!lang) return null;
@@ -114,11 +124,17 @@ export async function highlight(
     if (!highlighter.getLoadedLanguages().includes(lang)) {
       await highlighter.loadLanguage(await LANGUAGES[lang]());
     }
-    const { tokens } = highlighter.codeToTokens(code, {
+    const lines = highlighter.codeToTokensWithThemes(code, {
       lang,
-      theme: THEMES[theme]
+      themes: THEMES
     });
-    return tokens;
+    return lines.map((line) =>
+      line.map((token) => ({
+        content: token.content,
+        dark: token.variants.dark ?? {},
+        light: token.variants.light ?? {}
+      }))
+    );
   } catch {
     // Un fallo de resaltado nunca debe impedir leer el código.
     return null;

@@ -44,7 +44,7 @@ réplica SQLite cuando hay divergencia.
 ## Eventos de chat
 
 `chat_start` devuelve de inmediato y Rust consume el stream POST SSE. El
-protocolo CDOR se traduce a:
+protocolo MAC se traduce a:
 
 - `chat://started`
 - `chat://delta`

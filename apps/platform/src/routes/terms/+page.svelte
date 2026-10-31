@@ -1,5 +1,5 @@
 <script lang="ts">
-  import LegalLayout from "$lib/components/LegalLayout.svelte";
+  import LegalLayout from "#lib/components/LegalLayout.svelte";
 </script>
 
 <svelte:head>

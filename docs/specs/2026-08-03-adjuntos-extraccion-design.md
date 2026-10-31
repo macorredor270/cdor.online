@@ -6,7 +6,7 @@ Sub-proyecto: **A** de 4
 
 ## Contexto
 
-CDOR no admite adjuntos. `messages.content` es canónico, `message_parts` no
+MAC no admite adjuntos. `messages.content` es canónico, `message_parts` no
 existe y la frontera HTTP solo acepta JSON de hasta 1 MiB. Este documento
 diseña la base: subir archivos, extraer su texto e inyectarlo en el prompt.
 

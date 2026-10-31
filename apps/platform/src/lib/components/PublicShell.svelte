@@ -364,7 +364,8 @@
 
   .shell-footer {
     border-top: 1px solid var(--border);
-    padding: 2.2rem 1.5rem 1.2rem;
+    /* Sin relleno lateral: el pie comparte eje con la cabecera y el contenido. */
+    padding: 2.2rem 0 1.2rem;
     margin-top: 3rem;
   }
 
@@ -446,7 +447,8 @@
     .shell-footer,
     .prose,
     .wide {
-      width: min(620px, calc(100% - var(--space-4)));
+      /* 16px por lado como mínimo: con 8px el texto rozaba el borde. */
+      width: min(620px, calc(100% - 2 * var(--gutter)));
     }
 
     .split {
@@ -504,7 +506,7 @@
       flex: 0 0 auto;
       place-items: center;
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-control);
       background: var(--surface-2);
       color: var(--text);
       cursor: pointer;
@@ -520,7 +522,7 @@
     }
 
     .nav-toggle:focus-visible {
-      outline: 2px solid var(--focus);
+      outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
       outline-offset: 2px;
     }
 
@@ -623,7 +625,7 @@
     }
 
     .shell-footer {
-      padding: var(--space-6) var(--space-2) var(--space-3);
+      padding: var(--space-6) 0 var(--space-3);
     }
 
     .footer-grid {

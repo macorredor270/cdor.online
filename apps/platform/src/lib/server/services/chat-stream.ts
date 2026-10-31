@@ -25,6 +25,7 @@ import { buildPrompt } from "../ai/prompt-builder";
 import { estimateMessagesTokens } from "../ai/token-budget";
 import type { AiProvider } from "../ai/types";
 import type { AllowedModel } from "../ai/model-router";
+import type { MessageReservation, QuotaService } from "./quota";
 import { DeltaBatcher } from "../stream/delta-batcher";
 import {
   abortLocalGeneration,
@@ -169,8 +170,31 @@ export class ChatStreamService {
     private readonly webSearchRuntime?: Readonly<{
       provider: AiProvider;
       model: AllowedModel;
-    }>
+    }>,
+    private readonly quota?: QuotaService
   ) {}
+
+  /**
+   * Cuenta el mensaje contra la cuota diaria antes de tocar la base de datos
+   * y lo devuelve si la preparación falla (petición repetida, conversación
+   * inexistente…): quien no llega a generar no gasta cuota.
+   */
+  async #withQuota<T>(
+    principal: Principal,
+    operation: (reservation: MessageReservation | null) => Promise<T>
+  ): Promise<T> {
+    const reservation = this.quota
+      ? await this.quota.reserveMessage(principal.userId)
+      : null;
+    try {
+      return await operation(reservation);
+    } catch (error) {
+      if (reservation) {
+        await this.quota?.refundMessage(reservation).catch(() => undefined);
+      }
+      throw error;
+    }
+  }
 
   async prepare(
     principal: Principal,
@@ -179,6 +203,14 @@ export class ChatStreamService {
     const request = ChatStreamRequestSchema.parse(rawRequest);
     this.#assertSupportedMode(request.modelMode);
     const runtime = this.#runtimeFor(request.webSearch);
+    return this.#withQuota(principal, () => this.#prepare(principal, request, runtime));
+  }
+
+  async #prepare(
+    principal: Principal,
+    request: ChatStreamRequest,
+    runtime: { provider: AiProvider; model: AllowedModel }
+  ): Promise<PreparedGeneration> {
     try {
       const now = new Date();
       await this.repository.reconcileStale(
@@ -225,6 +257,16 @@ export class ChatStreamService {
     const request = ChatRegenerateRequestSchema.parse(rawRequest);
     this.#assertSupportedMode(request.modelMode);
     const runtime = this.#runtimeFor(request.webSearch);
+    return this.#withQuota(principal, () =>
+      this.#prepareRegeneration(principal, request, runtime)
+    );
+  }
+
+  async #prepareRegeneration(
+    principal: Principal,
+    request: ChatRegenerateRequest,
+    runtime: { provider: AiProvider; model: AllowedModel }
+  ): Promise<PreparedGeneration> {
     try {
       const now = new Date();
       await this.repository.reconcileStale(
@@ -273,15 +315,11 @@ export class ChatStreamService {
   }
 
   #runtimeFor(webSearch: boolean | undefined) {
-    if (webSearch) {
-      if (!this.webSearchRuntime) {
-        throw new AppError(
-          "MODEL_UNAVAILABLE",
-          "La búsqueda web no está configurada en este entorno"
-        );
-      }
-      return this.webSearchRuntime;
-    }
+    // La búsqueda web es opt-in en el servidor (AI_WEB_SEARCH). Si un cliente
+    // la pide sin que esté activada, se atiende sin ella en vez de rechazar el
+    // mensaje: la app móvil la pide por defecto y las apps ya instaladas no se
+    // actualizan solas.
+    if (webSearch && this.webSearchRuntime) return this.webSearchRuntime;
     return { provider: this.provider, model: this.model };
   }
 
@@ -317,9 +355,11 @@ export class ChatStreamService {
     const startedAt = performance.now();
     let firstTokenAt: number | null = null;
     let content = "";
+    let estimatedInputTokens = 0;
     let inputTokens: number | undefined;
     let outputTokens: number | undefined;
     let finishReason: "stop" | "length" = "stop";
+    let served: { provider: string; modelId: string } | undefined;
     let sequence = 0;
     let lastSnapshotAt = performance.now();
     let lastSnapshotBytes = 0;
@@ -389,6 +429,7 @@ export class ChatStreamService {
         contextTokens: runtime.model.contextTokens,
         reservedOutputTokens: runtime.model.maximumOutputTokens
       });
+      estimatedInputTokens = estimateMessagesTokens(prompt.messages);
 
       const outputFilter = createScaffoldingFilter();
 
@@ -435,6 +476,8 @@ export class ChatStreamService {
         } else if (chunk.type === "usage") {
           inputTokens = chunk.inputTokens;
           outputTokens = chunk.outputTokens;
+        } else if (chunk.type === "route") {
+          served = { provider: chunk.provider, modelId: chunk.model };
         } else {
           finishReason = chunk.finishReason === "length" ? "length" : "stop";
         }
@@ -461,8 +504,14 @@ export class ChatStreamService {
         latencyFirstTokenMs:
           firstTokenAt === null ? null : Math.round(firstTokenAt - startedAt),
         latencyTotalMs: Math.round(performance.now() - startedAt),
+        served,
         now: new Date()
       });
+      // Un fallo al anotar la cuota nunca debe convertir en error una
+      // respuesta ya entregada y guardada.
+      await this.quota
+        ?.recordTokens(principal.userId, finalInputTokens + finalOutputTokens)
+        .catch(() => undefined);
       emit({
         event: "usage",
         data: {
@@ -488,6 +537,22 @@ export class ChatStreamService {
         cancelled: stable.cancelled,
         now: new Date()
       });
+      if (this.quota) {
+        if (content.length === 0 && !stable.cancelled) {
+          // Falló el proveedor sin dar nada: no cuesta cuota al usuario.
+          await this.quota
+            .refundMessageAt(principal.userId, prepared.generation.createdAt)
+            .catch(() => undefined);
+        } else if (content.length > 0) {
+          // Respuesta parcial (cancelada o cortada): el proveedor ya la generó.
+          await this.quota
+            .recordTokens(
+              principal.userId,
+              estimatedInputTokens + Math.ceil([...content].length / 3)
+            )
+            .catch(() => undefined);
+        }
+      }
       emit({
         event: "error",
         data: {

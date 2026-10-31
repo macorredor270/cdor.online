@@ -49,15 +49,15 @@
     place-content: center;
     gap: 0.12rem;
     border: 0;
-    border-radius: 0.75rem;
+    border-radius: var(--radius-control);
     background: transparent;
     color: var(--muted);
-    font-size: 0.67rem;
+    font-size: var(--text-xs);
     font-weight: 700;
   }
 
   button span {
-    font-size: 1.05rem;
+    font-size: var(--text-base);
   }
 
   button.active {

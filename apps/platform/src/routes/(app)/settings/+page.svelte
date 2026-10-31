@@ -1,117 +1,194 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import {
+    readThemePreference,
+    saveThemePreference,
+    type ThemePreference
+  } from "#lib/client/theme.js";
+  import AppPage from "#lib/components/AppPage.svelte";
 
-  let theme = $state<"dark" | "light">("dark");
-  let saved = $state(false);
+  const OPTIONS: ReadonlyArray<{
+    value: ThemePreference;
+    label: string;
+    hint: string;
+  }> = [
+    { value: "system", label: "Sistema", hint: "Sigue el tema del dispositivo" },
+    { value: "dark", label: "Oscuro", hint: "El predeterminado de MAC" },
+    { value: "light", label: "Claro", hint: "Más contraste con luz ambiente" }
+  ];
+
+  let theme = $state<ThemePreference>("dark");
 
   onMount(() => {
-    theme =
-      document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    theme = readThemePreference();
   });
 
-  function save() {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem("cdor-theme", theme);
-    saved = true;
-    setTimeout(() => (saved = false), 1800);
+  // El cambio se aplica al elegir: un botón de guardar para algo que se ve
+  // al instante solo añadía un paso.
+  function choose(value: ThemePreference) {
+    theme = value;
+    saveThemePreference(value);
   }
 </script>
 
 <svelte:head><title>Ajustes — MAC</title></svelte:head>
 
-<div class="page">
-  <header>
-    <p>Apariencia del navegador</p>
-    <h1>Ajustes</h1>
-    <span class="muted">
-      Estas opciones se guardan solo en este navegador. Las preferencias
-      sincronizadas se incorporarán cuando tengan una ruta pública estable.
-    </span>
-  </header>
+<AppPage eyebrow="Este navegador" title="Ajustes">
+  {#snippet description()}
+    <p>
+      Estas opciones se guardan solo en este navegador. Tu cuenta, tus
+      conversaciones y tus memorias se sincronizan aparte.
+    </p>
+  {/snippet}
 
   <section class="panel">
-    <div>
-      <h2>Tema</h2>
-      <p class="muted">Elige el contraste que te resulte más cómodo.</p>
+    <div class="section-head">
+      <h2 id="theme-heading">Tema</h2>
+      <p class="muted">Se aplica en cuanto lo eliges.</p>
     </div>
-    <fieldset>
-      <legend class="sr-only">Tema de la interfaz</legend>
-      <label class:active={theme === "dark"}>
-        <input type="radio" name="theme" value="dark" bind:group={theme} />
-        <span aria-hidden="true">●</span>
-        Oscuro
-      </label>
-      <label class:active={theme === "light"}>
-        <input type="radio" name="theme" value="light" bind:group={theme} />
-        <span aria-hidden="true">○</span>
-        Claro
-      </label>
-    </fieldset>
-    <button class="button" type="button" onclick={save}>Guardar en este navegador</button>
-    {#if saved}<p class="success" role="status">Ajuste guardado.</p>{/if}
+    <div class="options" role="radiogroup" aria-labelledby="theme-heading">
+      {#each OPTIONS as option (option.value)}
+        <label class="option" class:active={theme === option.value}>
+          <input
+            type="radio"
+            name="theme"
+            value={option.value}
+            checked={theme === option.value}
+            onchange={() => choose(option.value)}
+          />
+          <span class="swatch" data-swatch={option.value} aria-hidden="true">
+            <i></i><i></i><i></i>
+          </span>
+          <span class="text">
+            <strong>{option.label}</strong>
+            <small>{option.hint}</small>
+          </span>
+        </label>
+      {/each}
+    </div>
   </section>
-</div>
+</AppPage>
 
 <style>
-  .page {
-    width: min(760px, calc(100% - 2rem));
-    margin: 0 auto;
-    padding: clamp(2rem, 6vw, 5rem) 0;
-  }
-
-  header p {
-    margin: 0;
-    color: var(--accent-strong);
-    font-size: var(--text-xs);
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  h1 {
-    margin: 0.3rem 0;
-    font-size: var(--text-display);
-    letter-spacing: -0.045em;
-  }
-
   section {
-    margin-top: 2rem;
-    padding: 1.4rem;
+    padding: var(--space-6);
   }
 
-  section h2,
-  section p {
+  .section-head h2,
+  .section-head p {
     margin: 0;
   }
 
-  fieldset {
+  .section-head h2 {
+    font-size: var(--text-lg);
+  }
+
+  .section-head p {
+    margin-top: var(--space-1);
+    font-size: var(--text-sm);
+  }
+
+  .options {
     display: grid;
-    margin: 1.5rem 0;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.7rem;
-    border: 0;
-    padding: 0;
+    margin-top: var(--space-6);
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: var(--space-3);
   }
 
-  fieldset label {
-    display: flex;
-    min-height: 5rem;
-    align-items: center;
-    gap: 0.7rem;
+  .option {
+    position: relative;
+    display: grid;
+    gap: var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 0.8rem;
+    border-radius: var(--radius-control);
     background: var(--surface-2);
-    padding: 1rem;
+    padding: var(--space-3);
     cursor: pointer;
+    transition:
+      border-color var(--motion-fast) var(--easing),
+      box-shadow var(--motion-fast) var(--easing),
+      transform var(--motion-fast) var(--easing);
   }
 
-  fieldset label.active {
+  .option:hover {
+    border-color: var(--border-strong);
+  }
+
+  .option.active {
     border-color: var(--accent);
     box-shadow: inset 0 0 0 1px var(--accent);
   }
 
-  fieldset input {
+  .option:has(input:focus-visible) {
+    outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
+    outline-offset: 2px;
+  }
+
+  .option input {
     position: absolute;
     opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Miniatura del tema: fondo, superficie y acento con los tokens de marca. */
+  .swatch {
+    display: grid;
+    height: 4.5rem;
+    overflow: hidden;
+    grid-template-columns: 1fr 2fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 4px;
+    border-radius: var(--radius-sm);
+    padding: 6px;
+  }
+
+  .swatch i {
+    border-radius: calc(var(--radius-xs) - 2px);
+  }
+
+  .swatch i:first-child {
+    grid-row: span 2;
+  }
+
+  .swatch[data-swatch="dark"] {
+    background: #0d0518;
+  }
+
+  .swatch[data-swatch="dark"] i {
+    background: #1d0f30;
+  }
+
+  .swatch[data-swatch="light"] {
+    background: var(--mac-background);
+  }
+
+  .swatch[data-swatch="light"] i {
+    background: #ebe6f2;
+  }
+
+  .swatch[data-swatch="system"] {
+    background: linear-gradient(135deg, #0d0518 50%, var(--mac-background) 50%);
+  }
+
+  .swatch[data-swatch="system"] i {
+    background: color-mix(in srgb, #1d0f30 50%, #ebe6f2);
+  }
+
+  .swatch i:last-child {
+    background: var(--mac-gradient) !important;
+  }
+
+  .text {
+    display: grid;
+    gap: 0.1rem;
+  }
+
+  .text strong {
+    font-size: var(--text-sm);
+  }
+
+  .text small {
+    color: var(--text-muted);
+    font-size: var(--text-xs);
   }
 </style>

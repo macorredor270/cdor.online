@@ -1,4 +1,4 @@
-# CDOR — Plan definitivo de arquitectura, desarrollo, depuración y despliegue
+# MAC — Plan definitivo de arquitectura, desarrollo, depuración y despliegue
 
 > **Documento rector del proyecto.**  
 > Dominio: `https://cdor.online`  
@@ -11,7 +11,7 @@
 
 ## 0. Objetivo del producto
 
-CDOR será una plataforma de chat con inteligencia artificial compuesta por:
+MAC será una plataforma de chat con inteligencia artificial compuesta por:
 
 1. Una aplicación web disponible en `cdor.online`.
 2. Una aplicación Android e iOS creada con Tauri 2.
@@ -19,7 +19,7 @@ CDOR será una plataforma de chat con inteligencia artificial compuesta por:
 4. MySQL de Hostinger como fuente central y oficial de datos.
 5. SQLite dentro del móvil como caché local, cola offline y almacenamiento rápido.
 6. NVIDIA NIM como proveedor inicial de inferencia, siempre detrás de nuestra API.
-7. Una identidad, memoria, sistema de prompts, selección de modelos y protocolo propios de CDOR.
+7. Una identidad, memoria, sistema de prompts, selección de modelos y protocolo propios de MAC.
 
 La web y la aplicación móvil **no tienen que verse idénticas**, pero deben compartir:
 
@@ -102,7 +102,7 @@ No se utiliza
 ## 1.2 Identificadores y direcciones
 
 ```text
-Nombre del producto: CDOR
+Nombre del producto: MAC
 Dominio web: https://cdor.online
 API base: https://cdor.online/api/v1
 Android applicationId: online.cdor.app
@@ -220,7 +220,7 @@ La versión 1 no incluirá inicialmente:
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│                    GitHub: monorepo CDOR                     │
+│                    GitHub: monorepo MAC                     │
 │                                                              │
 │ apps/platform      apps/mobile        packages compartidos   │
 └───────────┬───────────────┬───────────────────────┬───────────┘
@@ -803,7 +803,7 @@ Para conectarse desde el PC directamente a MySQL de Hostinger, antes hay que aut
 
 Better Auth generará sus tablas oficiales para MySQL/Drizzle. No se modifican manualmente sin regenerar y revisar la migración.
 
-Tablas funcionales de CDOR:
+Tablas funcionales de MAC:
 
 ```text
 profiles
@@ -1173,9 +1173,9 @@ La lista de modelos expuesta al usuario se mantiene en configuración propia. No
 14. Al cancelar/fallar, cerrar proveedor y dejar estado coherente.
 ```
 
-## 11.4 Formato del stream de CDOR
+## 11.4 Formato del stream de MAC
 
-No exponer sin filtrar el formato interno de NVIDIA. CDOR emite eventos propios:
+No exponer sin filtrar el formato interno de NVIDIA. MAC emite eventos propios:
 
 ```text
 event: start
@@ -2425,4 +2425,4 @@ La v1 solo se considera terminada cuando:
 
 ---
 
-**Regla final:** primero datos, contratos, backend, streaming, sincronización, Rust y pruebas. La interfaz bonita llega después. Una UI espectacular sobre una base frágil no sirve; CDOR debe sentirse rápido porque su arquitectura lo es, no porque esconda errores con animaciones.
+**Regla final:** primero datos, contratos, backend, streaming, sincronización, Rust y pruebas. La interfaz bonita llega después. Una UI espectacular sobre una base frágil no sirve; MAC debe sentirse rápido porque su arquitectura lo es, no porque esconda errores con animaciones.

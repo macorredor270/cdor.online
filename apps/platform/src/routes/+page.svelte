@@ -1,7 +1,7 @@
 <script lang="ts">
-  import AuthCard from "$lib/components/AuthCard.svelte";
-  import OAuthButtons from "$lib/components/OAuthButtons.svelte";
-  import PublicShell from "$lib/components/PublicShell.svelte";
+  import AuthCard from "#lib/components/AuthCard.svelte";
+  import OAuthButtons from "#lib/components/OAuthButtons.svelte";
+  import PublicShell from "#lib/components/PublicShell.svelte";
 
   let { data } = $props();
   let email = $state("");
@@ -243,7 +243,7 @@
     align-items: center;
     gap: var(--space-2);
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: var(--text-xs);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;

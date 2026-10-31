@@ -1,9 +1,9 @@
-import { building } from "$app/environment";
-import type { Handle } from "@sveltejs/kit";
+import type { Handle } from "@sveltejs/kit/hooks";
+import { building } from "$app/env";
 import { ulid } from "ulid";
-import { getAuth } from "$lib/server/auth/runtime";
-import { applySecurityHeaders } from "$lib/server/http/security";
-import { logRequest } from "$lib/server/observability/request-log";
+import { getAuth } from "#lib/server/auth/runtime.js";
+import { applySecurityHeaders } from "#lib/server/http/security.js";
+import { logRequest } from "#lib/server/observability/request-log.js";
 
 const CANONICAL_HOST = "cdor.online";
 
@@ -19,12 +19,16 @@ function hasAuthenticationCredentials(request: Request): boolean {
 // host-only y el callback OAuth vuelve siempre al apex de BETTER_AUTH_URL, así
 // que un flujo iniciado en www perdía su estado y moría con state_not_found.
 // El 308 preserva método y cuerpo, necesario para las rutas POST de acceso.
-function canonicalHostRedirect(url: URL): Response | null {
-  if (url.hostname !== `www.${CANONICAL_HOST}`) {
+// Se mira la cabecera Host y no url.hostname: con paths.origin configurado,
+// adapter-node fija el origen y la URL ya no refleja el host pedido.
+function canonicalHostRedirect(url: URL, host: string | null): Response | null {
+  const requestedHost = (host ?? url.host).split(":")[0]?.toLowerCase();
+  if (requestedHost !== `www.${CANONICAL_HOST}`) {
     return null;
   }
   const target = new URL(url);
   target.hostname = CANONICAL_HOST;
+  target.port = "";
   return new Response(null, {
     status: 308,
     headers: { location: target.toString() }
@@ -38,7 +42,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   const canonicalRedirect = building
     ? null
-    : canonicalHostRedirect(event.url);
+    : canonicalHostRedirect(event.url, event.request.headers.get("host"));
 
   let response: Response;
   if (canonicalRedirect !== null) {
@@ -52,8 +56,8 @@ export const handle: Handle = async ({ event, resolve }) => {
       !event.url.pathname.startsWith("/health") &&
       hasAuthenticationCredentials(event.request)
     ) {
-      const authSession = await getAuth().api
-        .getSession({ headers: event.request.headers })
+      const authSession = await getAuth()
+        .api.getSession({ headers: event.request.headers })
         .catch(() => null);
       if (authSession) {
         event.locals.principal = Object.freeze({

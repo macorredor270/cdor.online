@@ -119,6 +119,16 @@ describe.sequential("generaciones con MySQL", () => {
           .where(eq(syncChanges.userId, USER_A))
       ]);
     expect(messageRows).toHaveLength(2);
+    // Los clientes ven siempre el modelo público de MAC, nunca el proveedor.
+    const [assistantRow] = messageRows.filter((row) => row.role === "assistant");
+    expect(assistantRow).toMatchObject({ modelProvider: "mac", modelId: "mac" });
+    expect(
+      messageRows.find((row) => row.role === "user")
+    ).toMatchObject({ modelProvider: null, modelId: null });
+    expect(generationRows[0]).toMatchObject({
+      provider: "nvidia",
+      modelId: "meta/llama-3.1-8b-instruct"
+    });
     expect(generationRows).toHaveLength(1);
     expect(keyRows).toHaveLength(1);
     expect(changes.map(({ entityType }) => entityType).sort()).toEqual([
@@ -198,6 +208,8 @@ describe.sequential("generaciones con MySQL", () => {
       finishReason: "stop",
       latencyFirstTokenMs: 100,
       latencyTotalMs: 500,
+      // El respaldo entre proveedores sirvió esta respuesta.
+      served: { provider: "groq", modelId: "gpt-oss-120b" },
       now: new Date(NOW.getTime() + 2_000)
     });
     expect(completed).toMatchObject({
@@ -205,6 +217,8 @@ describe.sequential("generaciones con MySQL", () => {
       content: "Respuesta completa",
       syncVersion: 2n
     });
+    // El mensaje sigue mostrando el modelo público aunque sirviera otro.
+    expect(completed).toMatchObject({ modelProvider: "mac", modelId: "mac" });
 
     const [storedGeneration] = await client.database
       .select()
@@ -213,7 +227,9 @@ describe.sequential("generaciones con MySQL", () => {
     expect(storedGeneration).toMatchObject({
       state: "completed",
       inputTokens: 20,
-      outputTokens: 5
+      outputTokens: 5,
+      provider: "groq",
+      modelId: "gpt-oss-120b"
     });
     const usage = await client.database
       .select()
@@ -225,6 +241,8 @@ describe.sequential("generaciones con MySQL", () => {
         )
       );
     expect(usage).toHaveLength(1);
+    // La contabilidad operativa sí conoce al proveedor real.
+    expect(usage[0]).toMatchObject({ provider: "groq", modelId: "gpt-oss-120b" });
   });
 
   it("no permite a otro usuario cancelar la generación", async () => {

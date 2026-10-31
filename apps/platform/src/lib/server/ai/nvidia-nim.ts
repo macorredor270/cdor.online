@@ -49,10 +49,26 @@ const StreamChunkSchema = z
 
 type Fetch = typeof globalThis.fetch;
 
+/**
+ * Cliente de cualquier API de chat compatible con OpenAI. Nació para NVIDIA NIM
+ * y por eso conserva el nombre, pero la pasarela lo usa para todos los
+ * proveedores: solo cambian la URL, la clave y el nombre.
+ */
 export type NvidiaNimConfiguration = Readonly<{
-  apiKey: string;
+  /** Clave de API. Los servidores locales (Ollama…) no la necesitan. */
+  apiKey?: string;
   baseUrl: string;
   requestTimeoutMs: number;
+  /** Nombre con el que el proveedor se registra. Por defecto, `nvidia`. */
+  name?: string;
+  /**
+   * Pedir el consumo de tokens al final del stream. Los proveedores que no
+   * conocen `stream_options` pueden rechazarlo: con `false` el consumo se
+   * estima.
+   */
+  includeUsage?: boolean;
+  /** Convierte los ids del catálogo al formato que aceptan las peticiones. */
+  normalizeModelId?: (id: string) => string;
   fetch?: Fetch;
 }>;
 
@@ -110,6 +126,23 @@ function providerError(error: unknown, context: RequestContext): AppError {
   );
 }
 
+/**
+ * Interpreta `Retry-After` (segundos o fecha HTTP) en milisegundos, acotado a
+ * un rango razonable. Sin cabecera o ilegible: `null`.
+ */
+export function parseRetryAfter(
+  headers: Headers,
+  now: number = Date.now()
+): number | null {
+  const raw = headers.get("retry-after")?.trim();
+  if (!raw) return null;
+  const seconds = /^\d+$/.test(raw) ? Number(raw) : null;
+  const milliseconds =
+    seconds !== null ? seconds * 1_000 : Date.parse(raw) - now;
+  if (!Number.isFinite(milliseconds)) return null;
+  return Math.min(Math.max(milliseconds, 1_000), 5 * 60 * 1_000);
+}
+
 function normalizeFinishReason(value: string | null | undefined) {
   if (value === "length") {
     return "length" as const;
@@ -118,14 +151,19 @@ function normalizeFinishReason(value: string | null | undefined) {
 }
 
 export class NvidiaNimProvider implements AiProvider {
-  readonly name = "nvidia";
-  readonly #apiKey: string;
+  readonly name: string;
+  readonly #apiKey: string | undefined;
+  readonly #includeUsage: boolean;
+  readonly #normalizeModelId: (id: string) => string;
   readonly #baseUrl: string;
   readonly #requestTimeoutMs: number;
   readonly #fetch: Fetch;
 
   constructor(configuration: NvidiaNimConfiguration) {
+    this.name = configuration.name ?? "nvidia";
     this.#apiKey = configuration.apiKey;
+    this.#includeUsage = configuration.includeUsage ?? true;
+    this.#normalizeModelId = configuration.normalizeModelId ?? ((id) => id);
     this.#baseUrl = configuration.baseUrl.replace(/\/+$/, "");
     this.#requestTimeoutMs = configuration.requestTimeoutMs;
     this.#fetch = configuration.fetch ?? globalThis.fetch;
@@ -152,7 +190,9 @@ export class NvidiaNimProvider implements AiProvider {
           "El proveedor devolvió un catálogo inválido"
         );
       }
-      return parsed.data.data.map(({ id }) => Object.freeze({ id }));
+      return parsed.data.data.map(({ id }) =>
+        Object.freeze({ id: this.#normalizeModelId(id) })
+      );
     } catch (error) {
       throw providerError(error, context);
     } finally {
@@ -189,7 +229,9 @@ export class NvidiaNimProvider implements AiProvider {
             max_tokens: request.maxOutputTokens,
             temperature: request.temperature ?? 0.2,
             stream: true,
-            stream_options: { include_usage: true },
+            ...(this.#includeUsage
+              ? { stream_options: { include_usage: true } }
+              : {}),
             ...(request.webSearch
               ? {
                   tools: [
@@ -210,6 +252,13 @@ export class NvidiaNimProvider implements AiProvider {
         }
       );
 
+      if (response.status === 429) {
+        throw new AppError(
+          "RATE_LIMITED",
+          "El proveedor de IA está saturado. Inténtalo de nuevo en unos segundos.",
+          { details: { retryAfterMs: parseRetryAfter(response.headers) } }
+        );
+      }
       if (!response.ok || response.body === null) {
         throw new AppError(
           response.status === 400 || response.status === 404
@@ -270,7 +319,7 @@ export class NvidiaNimProvider implements AiProvider {
 
   #headers(): Readonly<Record<string, string>> {
     return {
-      authorization: `Bearer ${this.#apiKey}`,
+      ...(this.#apiKey ? { authorization: `Bearer ${this.#apiKey}` } : {}),
       "content-type": "application/json",
       accept: "application/json"
     };

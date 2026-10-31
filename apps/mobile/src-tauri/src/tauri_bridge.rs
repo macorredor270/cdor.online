@@ -89,7 +89,7 @@ fn client(app: &AppHandle) -> BridgeResult<Client> {
     let mut builder = Client::builder()
         .tls_backend_preconfigured(tls_configuration())
         .timeout(Duration::from_secs(30))
-        .user_agent("CDOR-Mobile/0.1");
+        .user_agent("MAC-Mobile/0.1");
     if !addresses.is_empty() {
         builder = builder.resolve_to_addrs(API_HOST, &addresses);
     }
@@ -646,7 +646,7 @@ fn start_generation(app: AppHandle, input: Value, path: &'static str) -> BridgeR
             let mut builder = reqwest::Client::builder()
                 .tls_backend_preconfigured(tls_configuration())
                 .timeout(Duration::from_secs(330))
-                .user_agent("CDOR-Mobile/0.1");
+                .user_agent("MAC-Mobile/0.1");
             if !addresses.is_empty() {
                 builder = builder.resolve_to_addrs(API_HOST, &addresses);
             }

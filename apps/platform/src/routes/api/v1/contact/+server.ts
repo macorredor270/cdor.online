@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { parseJsonRequest } from "$lib/server/http/payload";
-import { apiHandler, apiSuccess } from "$lib/server/http/response";
-import { AppError } from "$lib/server/errors/app-error";
-import { escapeHtml } from "$lib/server/email/escape-html";
+import { parseJsonRequest } from "#lib/server/http/payload.js";
+import { apiHandler, apiSuccess } from "#lib/server/http/response.js";
+import { AppError } from "#lib/server/errors/app-error.js";
+import { escapeHtml } from "#lib/server/email/escape-html.js";
 import type { RequestHandler } from "./$types";
 
 const ContactRequestSchema = z.object({
@@ -19,7 +19,10 @@ export const POST: RequestHandler = ({ locals, request }) =>
       input = await parseJsonRequest(request, ContactRequestSchema);
     } catch (err) {
       if (err instanceof Error && err.message.includes("cumple el contrato")) {
-        throw new AppError("VALIDATION_ERROR", "Por favor completa todos los campos con una dirección de correo válida.");
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "Por favor completa todos los campos con una dirección de correo válida."
+        );
       }
       throw err;
     }
@@ -27,8 +30,9 @@ export const POST: RequestHandler = ({ locals, request }) =>
     const recipient = "iam1ke@proton.me";
     // Nunca una credencial incrustada como respaldo: acaba en el repositorio y
     // sobrevive a cualquier rotación posterior. Sin variable, no se envía.
-    const resendApiKey = process.env.RESEND_API_KEY ?? process.env.SMTP_PASSWORD;
-    
+    const resendApiKey =
+      process.env.RESEND_API_KEY ?? process.env.SMTP_PASSWORD;
+
     // Resend exige onboarding@resend.dev salvo que cdor.online esté verificado en DNS
     // El cuerpo del correo es HTML y lo lee un cliente de correo: sin escapar,
     // cualquiera puede inyectar marcado en la bandeja de destino.
@@ -75,32 +79,39 @@ export const POST: RequestHandler = ({ locals, request }) =>
     `;
 
     // 1. Envío mediante la API de Resend, solo si hay credencial.
-    if (resendApiKey) try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          from: fromAddress,
-          to: [recipient],
-          reply_to: input.email,
-          subject,
-          text: textContent,
-          html: htmlContent
-        })
-      });
+    if (resendApiKey)
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [recipient],
+            reply_to: input.email,
+            subject,
+            text: textContent,
+            html: htmlContent
+          })
+        });
 
-      const responseData = await res.json().catch(() => null);
-      if (res.ok && responseData?.id) {
-        console.log(`[RESEND EMAIL ENVIADO CON ÉXITO ID: ${responseData.id}] A: ${recipient}`);
-        return apiSuccess({ sent: true, id: responseData.id }, locals.requestId, { status: 201 });
+        const responseData = await res.json().catch(() => null);
+        if (res.ok && responseData?.id) {
+          console.log(
+            `[RESEND EMAIL ENVIADO CON ÉXITO ID: ${responseData.id}] A: ${recipient}`
+          );
+          return apiSuccess(
+            { sent: true, id: responseData.id },
+            locals.requestId,
+            { status: 201 }
+          );
+        }
+        console.error("Resend API error response:", responseData);
+      } catch (err) {
+        console.error("Fallo al conectar con la API de Resend:", err);
       }
-      console.error("Resend API error response:", responseData);
-    } catch (err) {
-      console.error("Fallo al conectar con la API de Resend:", err);
-    }
 
     // 2. Respaldo mediante SMTP
     if (process.env.SMTP_HOST && process.env.SMTP_USER) {
@@ -125,11 +136,16 @@ export const POST: RequestHandler = ({ locals, request }) =>
           html: htmlContent
         });
 
-        return apiSuccess({ sent: true, provider: "smtp" }, locals.requestId, { status: 201 });
+        return apiSuccess({ sent: true, provider: "smtp" }, locals.requestId, {
+          status: 201
+        });
       } catch (err) {
         console.error("SMTP transport error:", err);
       }
     }
 
-    throw new AppError("INTERNAL_ERROR", "No se pudo enviar el correo de contacto en este momento.");
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "No se pudo enviar el correo de contacto en este momento."
+    );
   });

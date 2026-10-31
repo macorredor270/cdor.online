@@ -1,11 +1,12 @@
 <script lang="ts">
   import { ulid } from "ulid";
   import type { Device } from "@cdor/contracts";
-  import { apiRequest } from "$lib/client/api";
-  import { toasts } from "$lib/client/toast.svelte";
-  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
-  import Skeleton from "$lib/components/Skeleton.svelte";
-  import UserAvatar from "$lib/components/UserAvatar.svelte";
+  import { apiRequest } from "#lib/client/api.js";
+  import { toasts } from "#lib/client/toast.svelte.js";
+  import AppPage from "#lib/components/AppPage.svelte";
+  import ConfirmDialog from "#lib/components/ConfirmDialog.svelte";
+  import Skeleton from "#lib/components/Skeleton.svelte";
+  import UserAvatar from "#lib/components/UserAvatar.svelte";
 
   let { data } = $props();
   /** `null` mientras la lista viaja; el vacío real es un array vacío. */
@@ -112,11 +113,7 @@
 
 <svelte:head><title>Cuenta — MAC</title></svelte:head>
 
-<div class="page">
-  <header>
-    <p>Identidad y sesiones</p>
-    <h1>Cuenta</h1>
-  </header>
+<AppPage eyebrow="Identidad y sesiones" title="Cuenta">
 
   <section class="identity panel">
     <UserAvatar name={data.user.name} image={data.user.image} size="account" />
@@ -173,7 +170,7 @@
               {device.platform} · visto {new Date(device.lastSeenAt).toLocaleDateString("es")}
             </small>
           </div>
-        <button class="button danger" type="button" onclick={() => (revoking = device)}>
+          <button class="button danger" type="button" onclick={() => (revoking = device)}>
             Revocar
           </button>
         </article>
@@ -188,7 +185,12 @@
       conversaciones, mensajes, memorias y preferencias. La acción no se puede
       deshacer y no existe copia de recuperación.
     </p>
-    <form class="panel" onsubmit={deleteAccount}>
+    <!-- Plegado por defecto: el formulario más destructivo de la aplicación
+         no debe estar abierto cada vez que alguien entra a mirar sus
+         dispositivos. -->
+    <details class="panel">
+      <summary>Quiero eliminar mi cuenta</summary>
+    <form onsubmit={deleteAccount}>
       <label for="confirm-email">
         Escribe <strong>{data.user.email}</strong> para confirmar
       </label>
@@ -219,8 +221,9 @@
         {deleting ? "Eliminando…" : "Eliminar mi cuenta definitivamente"}
       </button>
     </form>
+    </details>
   </section>
-</div>
+</AppPage>
 
 <ConfirmDialog
   open={revoking !== null}
@@ -235,33 +238,12 @@
 />
 
 <style>
-  .page {
-    width: min(850px, calc(100% - 2rem));
-    margin: 0 auto;
-    padding: clamp(2rem, 6vw, 5rem) 0;
-  }
-
-  header p {
-    margin: 0;
-    color: var(--accent-strong);
-    font-size: var(--text-xs);
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  h1 {
-    margin: 0.3rem 0 2rem;
-    font-size: var(--text-display);
-    letter-spacing: -0.045em;
-  }
-
   .identity {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 1rem;
-    padding: 1.3rem;
+    gap: var(--space-4);
+    padding: var(--space-6);
   }
 
   .identity h2,
@@ -269,31 +251,32 @@
     margin: 0;
   }
 
-  .identity > span {
-    border: 1px solid color-mix(in srgb, var(--success) 40%, var(--border));
-    border-radius: 999px;
-    padding: 0.35rem 0.65rem;
-    color: var(--success);
-    font-size: var(--text-xs);
+  .identity h2 {
+    font-size: var(--text-lg);
   }
 
-  .device-icon {
-    display: grid;
-    place-items: center;
-    background: var(--accent-soft);
-    color: var(--accent-strong);
-    font-weight: 850;
+  .identity p {
+    font-size: var(--text-sm);
+  }
+
+  .identity > span {
+    border: 1px solid color-mix(in srgb, var(--success) 40%, var(--border));
+    border-radius: var(--radius-pill);
+    padding: 0.3rem var(--space-3);
+    color: var(--success);
+    font-size: var(--text-xs);
+    font-weight: 550;
   }
 
   .devices {
-    margin-top: 2.4rem;
+    margin-top: var(--space-12);
   }
 
   .section-head {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--space-4);
   }
 
   .section-head h2,
@@ -301,24 +284,40 @@
     margin: 0;
   }
 
+  .section-head h2,
+  .danger-zone h2 {
+    font-size: var(--text-lg);
+  }
+
+  .section-head p {
+    margin-top: var(--space-1);
+    font-size: var(--text-sm);
+  }
+
   .device-list {
     display: grid;
-    gap: 0.7rem;
-    margin-top: 1rem;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
   }
 
   article {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.9rem;
-    padding: 1rem;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    animation: mac-rise var(--motion-base) var(--easing-out);
   }
 
   .device-icon {
+    display: grid;
     width: 2.5rem;
     height: 2.5rem;
-    border-radius: 0.8rem;
+    place-items: center;
+    border-radius: var(--radius-control);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    font-weight: 750;
   }
 
   article strong,
@@ -328,15 +327,18 @@
 
   article small {
     color: var(--text-muted);
+    font-size: var(--text-xs);
   }
 
   article .button {
-    min-height: 2.2rem;
+    min-height: 2.25rem;
     font-size: var(--text-sm);
   }
 
   .empty {
-    padding: 1rem;
+    margin: 0;
+    padding: var(--space-4);
+    font-size: var(--text-sm);
   }
 
   .loading {
@@ -349,9 +351,9 @@
   }
 
   .danger-zone {
-    margin-top: 3rem;
-    padding-top: 2rem;
+    margin-top: var(--space-12);
     border-top: 1px solid var(--border);
+    padding-top: var(--space-8);
   }
 
   .danger-zone h2 {
@@ -360,31 +362,77 @@
   }
 
   .danger-zone > p {
-    margin: 0.35rem 0 1rem;
+    max-width: 42rem;
+    margin: var(--space-1) 0 var(--space-4);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+  }
+
+  details {
+    border-color: color-mix(in srgb, var(--danger) 25%, var(--border));
+    box-shadow: none;
+  }
+
+  summary {
+    display: flex;
+    min-height: 3rem;
+    align-items: center;
+    padding: 0 var(--space-4);
+    color: var(--danger);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary::before {
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-right: var(--space-3);
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    content: "";
+    transform: rotate(-45deg);
+    transition: transform var(--motion-fast) var(--easing);
+  }
+
+  details[open] summary::before {
+    transform: rotate(45deg);
   }
 
   .danger-zone form {
     display: grid;
-    gap: 0.4rem;
-    padding: 1.2rem;
+    gap: var(--space-2);
+    border-top: 1px solid var(--border);
+    padding: var(--space-4);
+    animation: mac-rise var(--motion-fast) var(--easing-out);
   }
 
   .danger-zone label {
+    margin-top: var(--space-2);
     font-size: var(--text-sm);
   }
 
   .danger-zone input {
     min-height: 2.75rem;
-    padding: 0.55rem 0.7rem;
     border: 1px solid var(--border);
-    border-radius: 0.6rem;
-    background: transparent;
+    border-radius: var(--radius-control);
+    background: var(--surface-2);
+    padding: 0 var(--space-3);
     color: var(--text);
     font: inherit;
   }
 
+  .danger-zone input:focus-visible {
+    border-color: var(--danger);
+  }
+
   .danger-zone .button {
-    margin-top: 0.7rem;
+    margin-top: var(--space-3);
     justify-self: start;
   }
 

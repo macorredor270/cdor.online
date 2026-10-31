@@ -26,7 +26,7 @@ async function readStream(stream: ReadableStream<Uint8Array>) {
 describe("frontera SSE", () => {
   afterEach(() => vi.useRealTimers());
 
-  it("serializa solo eventos válidos del contrato CDOR", () => {
+  it("serializa solo eventos válidos del contrato MAC", () => {
     const event = ChatStreamEventSchema.parse({
       event: "usage",
       data: { inputTokens: 10, outputTokens: 4 }

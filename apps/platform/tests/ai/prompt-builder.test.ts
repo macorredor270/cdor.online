@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 describe("presupuesto y construcción de prompt", () => {
   it("reserva salida y conserva el mensaje actual", () => {
     const prompt = buildPrompt({
-      systemPrompt: "Eres CDOR.",
+      systemPrompt: "Eres MAC.",
       memories: [],
       previousMessages: [
         { role: "user", content: "Contexto anterior" },
@@ -33,7 +33,7 @@ describe("presupuesto y construcción de prompt", () => {
 
   it("prioriza memorias habilitadas por importancia y actualización", () => {
     const prompt = buildPrompt({
-      systemPrompt: "Eres CDOR.",
+      systemPrompt: "Eres MAC.",
       memories: [
         {
           content: "deshabilitada",
@@ -64,7 +64,7 @@ describe("presupuesto y construcción de prompt", () => {
     });
 
     expect(prompt.messages.map(({ content }) => content)).toEqual([
-      "Eres CDOR.",
+      "Eres MAC.",
       "[Memoria:perfil] importante reciente",
       "[Memoria:perfil] menos importante",
       "Hola"

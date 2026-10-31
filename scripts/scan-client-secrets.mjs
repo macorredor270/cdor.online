@@ -28,6 +28,24 @@ export const SENSITIVE_SERVER_NAMES = Object.freeze([
   "OPENROUTER_BASE_URL",
   "OPENROUTER_DEFAULT_MODEL",
   "OPENROUTER_REQUEST_TIMEOUT_MS",
+  "QUOTA_USER_DAILY_MESSAGES",
+  "QUOTA_USER_DAILY_TOKENS",
+  "QUOTA_GLOBAL_DAILY_TOKENS",
+  "AI_FALLBACK_OPENROUTER",
+  "NVIDIA_RPM",
+  "GROQ_API_KEY",
+  "GROQ_DEFAULT_MODEL",
+  "GROQ_RPM",
+  "GEMINI_API_KEY",
+  "GEMINI_DEFAULT_MODEL",
+  "GEMINI_RPM",
+  "MISTRAL_API_KEY",
+  "MISTRAL_DEFAULT_MODEL",
+  "MISTRAL_RPM",
+  "AI_ROUTING",
+  "AI_PROVIDER_ORDER",
+  "AI_CUSTOM_PROVIDERS",
+  "AI_WEB_SEARCH",
   "STREAM_CANARY_TOKEN"
 ]);
 
@@ -54,6 +72,25 @@ export const SECRET_CANARIES = Object.freeze({
   OPENROUTER_BASE_URL: "https://openrouter-canary-7f42.invalid/api/v1",
   OPENROUTER_DEFAULT_MODEL: "cdor/openrouter-canary-free-7f42",
   OPENROUTER_REQUEST_TIMEOUT_MS: "234568",
+  // Las variables booleanas o de valores fijos (AI_FALLBACK_OPENROUTER,
+  // AI_WEB_SEARCH, AI_ROUTING, AI_PROVIDER_ORDER) se vigilan por su nombre: un
+  // valor canario ("false", "ordered"…) aparece en cualquier bundle y daría
+  // falsos positivos.
+  GROQ_API_KEY: "__CDOR_PRIVATE_CANARY_GROQ_KEY_7f42c9__",
+  GROQ_DEFAULT_MODEL: "cdor/groq-canary-model-7f42",
+  GROQ_RPM: "7433",
+  GEMINI_API_KEY: "__CDOR_PRIVATE_CANARY_GEMINI_KEY_7f42c9__",
+  GEMINI_DEFAULT_MODEL: "cdor/gemini-canary-model-7f42",
+  GEMINI_RPM: "7434",
+  MISTRAL_API_KEY: "__CDOR_PRIVATE_CANARY_MISTRAL_KEY_7f42c9__",
+  MISTRAL_DEFAULT_MODEL: "cdor/mistral-canary-model-7f42",
+  MISTRAL_RPM: "7435",
+  NVIDIA_RPM: "7436",
+  AI_CUSTOM_PROVIDERS:
+    "[{\"id\":\"canary\",\"baseUrl\":\"https://custom-canary-7f42.invalid/v1\",\"apiKey\":\"__CDOR_PRIVATE_CANARY_CUSTOM_KEY_7f42c9__\",\"model\":\"cdor/custom-canary-7f42\"}]",
+  QUOTA_USER_DAILY_MESSAGES: "7431",
+  QUOTA_USER_DAILY_TOKENS: "743100",
+  QUOTA_GLOBAL_DAILY_TOKENS: "7431000",
   STREAM_CANARY_TOKEN: "__CDOR_PRIVATE_CANARY_STREAM_TOKEN_7f42c9__"
 });
 

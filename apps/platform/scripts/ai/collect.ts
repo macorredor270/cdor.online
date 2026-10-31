@@ -32,7 +32,7 @@ export async function collectGeneration(
     } else if (chunk.type === "usage") {
       inputTokens = chunk.inputTokens;
       outputTokens = chunk.outputTokens;
-    } else {
+    } else if (chunk.type === "done") {
       done = true;
     }
   }

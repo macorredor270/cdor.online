@@ -40,6 +40,7 @@ jobs:
           archive="$RUNNER_TEMP/cdor-platform-hostinger.tar.gz"
           tar -tzf "$archive" | grep -Fx "apps/platform/package.json"
           tar -tzf "$archive" | grep -Fx "packages/contracts/package.json"
+          tar -tzf "$archive" | grep -Fx "packages/markdown/package.json"
           if tar -tzf "$archive" |
             grep -Eq '(^|/)(apps/mobile|src-tauri)(/|$)'; then
             echo "El artefacto contiene código móvil no permitido" >&2

@@ -1,33 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { readChatStream } from "../../src/lib/client/api";
-import {
-  parseInline,
-  parseMarkdown
-} from "../../src/lib/client/markdown";
+import { parseMarkdown } from "../../src/lib/client/markdown";
 
 const ID = "01J00000000000000000000000";
 
 describe("web client", () => {
-  it("renders supported Markdown without accepting executable links or HTML", () => {
-    const blocks = parseMarkdown(
-      "# Título\n\n**seguro** [web](https://cdor.online) " +
-        "[ataque](javascript:alert(1)) <script>alert(1)</script>"
-    );
-    expect(blocks).toHaveLength(2);
-    expect(JSON.stringify(blocks)).toContain("https://cdor.online/");
-    expect(JSON.stringify(blocks)).not.toContain('"href":"javascript:');
-    expect(JSON.stringify(blocks)).toContain("<script>alert(1)</script>");
-  });
-
-  it("parses inline code, emphasis and strong text as data", () => {
-    expect(parseInline("usa `code`, *énfasis* y **fuerza**")).toEqual([
-      { type: "text", value: "usa " },
-      { type: "code", value: "code" },
-      { type: "text", value: ", " },
-      { type: "emphasis", value: "énfasis" },
-      { type: "text", value: " y " },
-      { type: "strong", value: "fuerza" }
-    ]);
+  // El parser y sus pruebas viven en packages/markdown; aquí solo se comprueba
+  // que la web lo consume a través de su reexportación.
+  it("reexporta el parser compartido de Markdown", () => {
+    expect(parseMarkdown("| a | b |\n| - | - |\n| 1 | 2 |")[0]?.type).toBe("table");
   });
 
   it("decodes SSE split across arbitrary network chunks", async () => {

@@ -1,20 +1,23 @@
 <p align="center">
-  <img src="docs-assets/banner.svg" alt="CDOR: chat con IA sincronizado entre web, Android e iOS." width="100%">
+  <img src="docs-assets/banner.svg" alt="MAC: chat con IA sincronizado entre web, Android e iOS." width="100%">
 </p>
 
 <p align="center">
   <a href="https://cdor.online"><img alt="Sitio" src="https://img.shields.io/badge/web-cdor.online-a78bfa?style=flat-square"></a>
-  <img alt="Stack" src="https://img.shields.io/badge/SvelteKit%20%2F%20Tauri%202-a78bfa?style=flat-square">
-  <img alt="Licencia" src="https://img.shields.io/badge/estado-en%20producción-818cf8?style=flat-square">
+  <img alt="Stack" src="https://img.shields.io/badge/SvelteKit%203%20%2F%20Tauri%202-a78bfa?style=flat-square">
+  <img alt="Estado" src="https://img.shields.io/badge/estado-en%20producción-818cf8?style=flat-square">
 </p>
 
 ---
 
-CDOR es una plataforma de chat con inteligencia artificial compuesta por una aplicación web
+MAC es una plataforma de chat con inteligencia artificial compuesta por una aplicación web
 (**[cdor.online](https://cdor.online)**), aplicaciones Android e iOS, y una API central que
-sincroniza cuenta, conversaciones, mensajes, memorias y preferencias entre dispositivos. NVIDIA
-NIM actúa como proveedor de inferencia, siempre detrás de la API propia — el modelo nunca se llama
-directamente desde el cliente.
+sincroniza cuenta, conversaciones, mensajes, memorias y preferencias entre dispositivos.
+
+**MAC es gratuito.** Se presenta como un único modelo propio: detrás hay una pasarela que reparte
+las conversaciones entre proveedores de IA gratuitos (NVIDIA, Groq, Gemini, Mistral y los que
+conectes tú, por ejemplo Ollama o vLLM) con respaldo automático si uno falla. Los clientes nunca
+llaman a ningún proveedor ni ven cuál responde. Ver [`docs/ai.md`](./docs/ai.md).
 
 La arquitectura, los límites técnicos y el orden de desarrollo están definidos en
 [`CDOR_PLAN_DEFINITIVO.md`](./CDOR_PLAN_DEFINITIVO.md), la fuente canónica del proyecto.
@@ -33,7 +36,7 @@ Monorepo gestionado con **pnpm workspaces**:
 
 | Directorio | Descripción |
 | --- | --- |
-| `apps/platform` | Aplicación **SvelteKit** (Svelte 5, TypeScript, Drizzle ORM sobre MySQL, Better Auth). Sirve la web y la API. Desplegada en Hostinger Business. |
+| `apps/platform` | Aplicación **SvelteKit 3** (Svelte 5, TypeScript, Drizzle ORM sobre MySQL, Better Auth 1.7). Sirve la web y la API. Desplegada en Hostinger Business. |
 | `apps/mobile` | Aplicación **Svelte 5 + Tauri 2 (Rust)** para Android e iOS. |
 | `packages/contracts` | Contratos compartidos en **Zod** — fuente de verdad de los tipos que consumen `platform` y `mobile`. |
 
@@ -71,7 +74,7 @@ pnpm build:mobile
 cargo check --manifest-path apps/mobile/src-tauri/Cargo.toml
 ```
 
-`scripts/env.sh` activa el toolchain de CDOR solo en el shell actual; no cambia los runtimes
+`scripts/env.sh` activa el toolchain de MAC solo en el shell actual; no cambia los runtimes
 globales usados por otros proyectos.
 
 Las variables de entorno necesarias (credenciales de base de datos, proveedor de IA, SMTP, OAuth,
@@ -95,3 +98,4 @@ El build de Hostinger no ejecuta Tauri, Cargo, Gradle ni Xcode.
 - [`CDOR_PLAN_DEFINITIVO.md`](./CDOR_PLAN_DEFINITIVO.md) — documento rector de arquitectura,
   límites y orden de desarrollo.
 - [`docs/`](./docs) — referencia de API, autenticación, modelo de datos, capa de IA y puente Tauri.
+- [`docs/ui.md`](./docs/ui.md) — sistema de diseño de la web: tokens, tema, componentes y patrones.

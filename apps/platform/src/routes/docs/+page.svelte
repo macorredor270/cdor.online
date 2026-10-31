@@ -1,5 +1,5 @@
 <script lang="ts">
-  import PublicShell from "$lib/components/PublicShell.svelte";
+  import PublicShell from "#lib/components/PublicShell.svelte";
 
   /**
    * Índice de la documentación.

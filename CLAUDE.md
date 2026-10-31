@@ -8,12 +8,22 @@ La documentación (`docs/`, `CDOR_PLAN_DEFINITIVO.md`), los mensajes de UI y los
 mensajes de error de cara al usuario están en español. Los comentarios de código
 están en inglés. Mantén esa convención.
 
+## Nombre
+
+El producto se llama **MAC**. `cdor` es el dominio (`cdor.online`), el repositorio
+y la base de los identificadores técnicos (`@cdor/*`, prefijo de cookies, claves de
+`localStorage`, logs `CDOR_*`, `online.cdor.app`): se conservan a propósito porque
+cambiarlos cerraría sesiones o rompería la actualización de la app Android. En
+textos, interfaz y documentación escribe MAC.
+
 ## Fuente canónica
 
 `CDOR_PLAN_DEFINITIVO.md` es la autoridad de arquitectura, límites y orden de
 desarrollo. `PLAN.md` solo apunta ahí. Antes de proponer un cambio estructural,
 comprueba las secciones 2.1–2.5 (límites inviolables) y 5 (orden obligatorio).
 `docs/milestones/M0.md`…`M15.md` registra lo entregado por milestone.
+`docs/ui.md` es la referencia del sistema de diseño web (tokens, tema,
+componentes y patrones); `docs/archive/` guarda documentos de trabajo antiguos.
 
 ## Toolchain
 
@@ -105,10 +115,17 @@ pnpm build:hostinger
 ## Arquitectura
 
 ```text
-apps/platform  → SvelteKit + adapter-node → Hostinger Business (cdor.online)
+apps/platform  → SvelteKit 3 + adapter-node 6 → Hostinger Business (cdor.online)
 apps/mobile    → Svelte + Tauri/Rust      → Android/iOS
 packages/contracts → Zod, fuente de verdad de tipos compartidos
+packages/markdown  → parser de Markdown del modelo (árbol tipado, sin HTML), web y móvil
 ```
+
+SvelteKit 3: no hay `svelte.config.js`; la configuración de Kit vive en
+`sveltekit({...})` dentro de `apps/platform/vite.config.ts`. El alias `$lib`
+ya no existe: se importa con `#lib/...` (subpath imports de `package.json`) y
+extensión explícita (`#lib/server/foo.js` para un `.ts`). Estado de página con
+`$app/state`, nunca `$app/stores`.
 
 ### Frontera de red
 
@@ -153,16 +170,34 @@ Convenciones del wire format (`docs/api.md`):
 
 Toda inferencia sale de `server/ai/`. `AiProvider` expone `listModels` y
 `streamChat`; los fragmentos del proveedor se traducen al protocolo SSE propio de
-CDOR (`server/stream/`), nunca se reenvía el stream crudo del proveedor.
+MAC (`server/stream/`), nunca se reenvía el stream crudo del proveedor.
 
-- NVIDIA NIM es el proveedor de producción (API compatible OpenAI).
-- OpenRouter es alternativo y solo aporta la herramienta server-side
-  `openrouter:web_search` sobre el mismo modelo; bloquea antes de la red
-  cualquier ID que no sea `openrouter/free` o no termine en `:free`.
-- La allowlist de modelos vive en `server/ai/model-router.ts`. Nunca publiques el
-  catálogo completo del proveedor.
+MAC es **gratuito** (sin pagos en la v1) y se presenta como **un único modelo
+propio**: `GatewayProvider` (`server/ai/gateway/`) reparte las peticiones entre
+los proveedores gratuitos configurados con respaldo automático
+(`ai/fallback.ts`).
+
+- Un proveedor se activa al definir su clave (NVIDIA, Groq, Gemini, Mistral) o
+  con `AI_CUSTOM_PROVIDERS` (cualquier API compatible con OpenAI, sin tocar
+  código). El registro está en `ai/gateway/registry.ts`.
+- **No fijes IDs de modelo**: los proveedores retiran y renombran modelos
+  gratuitos; cada despliegue los descubre en su catálogo (`DiscoveredModel`).
+- **Identidad pública:** catálogo, mensajes y sincronización llevan siempre
+  `PUBLIC_MODEL` (`mac`/`mac`, en `@cdor/contracts`). El proveedor y modelo
+  reales solo van a `generation_requests` y `usage_events`. Nunca expongas el
+  proveedor real a un cliente.
+- NVIDIA es un proveedor más y solo admite la lista blanca de
+  `server/ai/model-router.ts`. OpenRouter solo participa en el chat con
+  `AI_FALLBACK_OPENROUTER=true` y bloquea antes de la red cualquier ID que no sea
+  `openrouter/free` o no termine en `:free`. La búsqueda web (herramienta de pago
+  de OpenRouter) está apagada salvo `AI_WEB_SEARCH=true`.
+- No rotes varias claves del mismo proveedor para saltar sus límites.
 - `generation_requests.cancel_requested_at` hace que la cancelación sobreviva a
   reinicios de proceso.
+- Cuotas diarias por usuario y tope global (`services/quota.ts`, tabla
+  `rate_limit_buckets`): el mensaje se devuelve si ningún proveedor responde.
+- Toda variable nueva de IA es server-only: debe constar en
+  `SERVER_SECRET_ENV_NAMES` y en el escáner (una prueba lo vigila).
 
 Detalles en `docs/ai.md`.
 

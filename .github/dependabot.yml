@@ -1,0 +1,40 @@
+# Actualizaciones de dependencias. Las de seguridad llegan en cuanto se
+# publican; las de versión se agrupan una vez por semana para no saturar.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    # save-exact=true en .npmrc: las propuestas mantienen la versión fijada.
+    versioning-strategy: increase
+    groups:
+      svelte:
+        patterns: ["svelte", "svelte-check", "@sveltejs/*"]
+      better-auth:
+        patterns: ["better-auth", "@better-auth/*"]
+      tooling:
+        patterns: ["vite", "vitest", "typescript", "tsx", "@types/*", "drizzle-kit"]
+      tauri:
+        patterns: ["@tauri-apps/*"]
+    ignore:
+      # Node 24 está fijado por .node-version y engines.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: cargo
+    directory: /apps/mobile/src-tauri
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

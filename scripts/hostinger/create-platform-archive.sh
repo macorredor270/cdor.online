@@ -31,7 +31,8 @@ git -C "$CDOR_REPOSITORY_ROOT" archive \
   scripts/hostinger/build-runtime.sh \
   scripts/hostinger/server-entry.mjs \
   apps/platform \
-  packages/contracts |
+  packages/contracts \
+  packages/markdown |
   tar -xf - -C "$CDOR_ARCHIVE_ROOT"
 
 node -e '
@@ -75,7 +76,8 @@ tar -czf "$CDOR_OUTPUT" \
   scripts/hostinger/build-runtime.sh \
   scripts/hostinger/server-entry.mjs \
   apps/platform \
-  packages/contracts
+  packages/contracts \
+  packages/markdown
 
 if tar -tzf "$CDOR_OUTPUT" | grep -Eq '(^|/)(apps/mobile|src-tauri)(/|$)'; then
   echo "El archivo contiene código móvil no permitido" >&2
