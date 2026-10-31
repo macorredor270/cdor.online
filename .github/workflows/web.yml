@@ -54,7 +54,7 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --filter @cdor/platform...
+      - run: pnpm install --frozen-lockfile
       - run: pnpm --dir apps/platform check
       - run: pnpm --dir packages/markdown test
       - run: pnpm test:web
