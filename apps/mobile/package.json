@@ -14,14 +14,14 @@
   "dependencies": {
     "@cdor/contracts": "workspace:*",
     "@cdor/markdown": "workspace:*",
-    "@tauri-apps/api": "2.11.1",
-    "@tauri-apps/plugin-deep-link": "2.4.9",
-    "@tauri-apps/plugin-opener": "2.5.4",
+    "@tauri-apps/api": "2.12.4",
+    "@tauri-apps/plugin-deep-link": "2.6.3",
+    "@tauri-apps/plugin-opener": "2.7.2",
     "ulid": "3.0.2"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.3.1",
-    "@tauri-apps/cli": "2.11.4",
+    "@tauri-apps/cli": "2.12.4",
     "@types/node": "24.19.2",
     "svelte": "5.57.3",
     "svelte-check": "4.7.7",
