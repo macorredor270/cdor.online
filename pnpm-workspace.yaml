@@ -1,0 +1,18 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  esbuild: false
+# adapter-node 6.0.1 corrige un fallo del servidor con respuestas
+# text/event-stream (el streaming del chat); se acepta antes del periodo de espera.
+minimumReleaseAgeExclude:
+  - '@sveltejs/adapter-node@6.0.1'
+  - '@sveltejs/kit@3.1.1'
+overrides:
+  esbuild: 0.28.1
+auditConfig:
+  ignoreGhsas:
+    # deepmerge <=4.3.1 (low). Sin versión corregida publicada; solo lo usa
+    # @sveltejs/vite-plugin-svelte en build para fusionar la configuración del
+    # propio proyecto, nunca entrada de usuarios. Retirar cuando salga 4.3.2.
+    - GHSA-gcqx-w48m-w2h4

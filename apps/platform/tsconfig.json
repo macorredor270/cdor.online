@@ -1,0 +1,9 @@
+{
+  "extends": "$app/tsconfig",
+  "compilerOptions": {
+    "sourceMap": true,
+    "strict": true,
+    "moduleResolution": "Bundler"
+  },
+  "include": ["src", "vite.config.ts", "drizzle.config.ts", "tests"]
+}

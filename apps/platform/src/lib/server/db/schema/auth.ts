@@ -1,0 +1,115 @@
+import { relations, sql } from "drizzle-orm";
+import {
+  char,
+  mysqlTable,
+  varchar,
+  text,
+  datetime,
+  boolean,
+  index,
+} from "drizzle-orm/mysql-core";
+
+// Generado con @better-auth/cli 1.4.21 desde Better Auth 1.6.25.
+// Revisión MAC: ULID CHAR(26) y DATETIME(3), según el contrato canónico.
+export const user = mysqlTable("user", {
+  id: char("id", { length: 26 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  image: text("image"),
+  createdAt: datetime("created_at", { fsp: 3 })
+    .default(sql`CURRENT_TIMESTAMP(3)`)
+    .notNull(),
+  updatedAt: datetime("updated_at", { fsp: 3 })
+    .default(sql`CURRENT_TIMESTAMP(3)`)
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
+export const session = mysqlTable(
+  "session",
+  {
+    id: char("id", { length: 26 }).primaryKey(),
+    expiresAt: datetime("expires_at", { fsp: 3 }).notNull(),
+    token: varchar("token", { length: 255 }).notNull().unique(),
+    createdAt: datetime("created_at", { fsp: 3 })
+      .default(sql`CURRENT_TIMESTAMP(3)`)
+      .notNull(),
+    updatedAt: datetime("updated_at", { fsp: 3 })
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: char("user_id", { length: 26 })
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    deviceId: char("device_id", { length: 26 }),
+  },
+  (table) => [
+    index("session_userId_idx").on(table.userId),
+    index("session_user_device_idx").on(table.userId, table.deviceId),
+  ],
+);
+
+export const account = mysqlTable(
+  "account",
+  {
+    id: char("id", { length: 26 }).primaryKey(),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    userId: char("user_id", { length: 26 })
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: datetime("access_token_expires_at", { fsp: 3 }),
+    refreshTokenExpiresAt: datetime("refresh_token_expires_at", { fsp: 3 }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: datetime("created_at", { fsp: 3 })
+      .default(sql`CURRENT_TIMESTAMP(3)`)
+      .notNull(),
+    updatedAt: datetime("updated_at", { fsp: 3 })
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("account_userId_idx").on(table.userId)],
+);
+
+export const verification = mysqlTable(
+  "verification",
+  {
+    id: char("id", { length: 26 }).primaryKey(),
+    identifier: varchar("identifier", { length: 255 }).notNull(),
+    value: text("value").notNull(),
+    expiresAt: datetime("expires_at", { fsp: 3 }).notNull(),
+    createdAt: datetime("created_at", { fsp: 3 })
+      .default(sql`CURRENT_TIMESTAMP(3)`)
+      .notNull(),
+    updatedAt: datetime("updated_at", { fsp: 3 })
+      .default(sql`CURRENT_TIMESTAMP(3)`)
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const userRelations = relations(user, ({ many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));

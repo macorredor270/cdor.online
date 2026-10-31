@@ -1,0 +1,1 @@
+CREATE INDEX `sync_changes_user_entity_idx` ON `sync_changes` (`user_id`,`entity_type`,`entity_id`,`change_id`);
