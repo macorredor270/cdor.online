@@ -48,7 +48,7 @@
   "dependencies": {
     "@cdor/contracts": "workspace:*",
     "@cdor/markdown": "workspace:*",
-    "better-auth": "1.7.14",
+    "better-auth": "1.7.18",
     "drizzle-orm": "0.45.4",
     "mysql2": "3.24.6",
     "nodemailer": "10.2.1",
